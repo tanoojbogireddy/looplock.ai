@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Loader2, Sparkles, Flame, Scissors, AlertTriangle, Zap, RefreshCw, Copy, Check, Languages } from "lucide-react";
+import { Loader2, Sparkles, Flame, Scissors, AlertTriangle, Zap, RefreshCw, Copy, Check, Languages, Stethoscope, ArrowRight } from "lucide-react";
 
 type MatrixRow = { time: string; line: string; lineRoman: string; directive: string };
 
@@ -8,6 +8,20 @@ const HOOKS = [
   { label: "Curiosity Gap", text: "ఈ 5-నిమిషాల ఆటోమేషన్ ఇమెయిల్స్‌ను తమంతట తామే రిప్లై ఇచ్చేలా చేస్తుంది." },
   { label: "In Medias Res", text: "ఒక స్క్రిప్ట్ 3 సెకన్లలో 400 క్లయింట్ ఇమెయిల్స్ క్లియర్ చేయడం నేను చూశాను." },
 ];
+
+const SCRIPT_DOCTOR = {
+  original:
+    "హాయ్ గైస్, వెల్‌కమ్ బ్యాక్ టు మై ఛానల్! ఈరోజు నేను మీకు ఒక చాలా ఇంట్రెస్టింగ్ టాపిక్ గురించి చెప్పబోతున్నాను, అది ఏంటంటే... అమ్... మీరు రోజూ చాలా టైమ్ ఇమెయిల్స్ చెక్ చేయడంలో పెడుతున్నారు కదా? అంటే నేను కూడా చాలా స్ట్రగుల్ అయ్యాను దీంతో, సో నేను ఒక సొల్యూషన్ ఫైండ్ చేశాను, లెట్ మి షో యూ హౌ ఇట్ వర్క్స్...",
+  optimized: [
+    "మీరు రోజూ 4 గంటలు ఇమెయిల్స్‌లో వృథా చేస్తున్నారు.",
+    "ఇది ఇప్పుడే ఆపండి — మంచి మార్గం ఉంది.",
+    "మీ టోన్‌లోనే ఆటో-రిప్లై ఇచ్చే స్క్రిప్ట్ నేను రూపొందించాను.",
+    "15 సెకన్లలో ఇది ఎలా పనిచేస్తుందో చూడండి.",
+    "ఇది మీ చివరి 100 ఇమెయిల్స్ చదివి మీ వాయిస్ నేర్చుకుంటుంది.",
+    "తర్వాత ఒక్క ట్యాప్‌తో అప్రూవ్ చేసే రిప్లై తయారు చేస్తుంది.",
+    "గత వారం నేను 19 గంటలు సేవ్ చేశాను. లింక్ బయోలో ఉంది.",
+  ],
+};
 
 const ALT_DIRECTIVES: Record<string, string[]> = {
   "0:00": [
@@ -163,12 +177,65 @@ function ResultView() {
         </div>
       </section>
 
+      {/* Script Doctor */}
+      <section className="rounded-2xl border border-border bg-card p-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+            <Stethoscope className="h-3.5 w-3.5 text-primary" />
+            The Script Doctor
+          </div>
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-widest text-primary">
+            −68% Filler
+          </span>
+        </div>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Aggressive cut-down: conversational fluff stripped into punchy, teleprompter-ready lines.
+        </p>
+
+        <div className="mt-5 grid gap-4 md:grid-cols-2">
+          {/* Original */}
+          <div className="rounded-xl border border-border bg-background/40 p-5">
+            <div className="mb-3 flex items-center justify-between">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                Original Raw Draft
+              </span>
+              <span className="rounded-full bg-destructive/15 px-2 py-0.5 text-[10px] font-medium text-destructive">
+                Before
+              </span>
+            </div>
+            <p className="text-sm leading-relaxed text-muted-foreground/70 line-through decoration-destructive/40 decoration-1">
+              {SCRIPT_DOCTOR.original}
+            </p>
+          </div>
+
+          {/* Optimized */}
+          <div className="relative rounded-xl border border-primary/40 bg-primary/5 p-5 shadow-[0_0_30px_-12px_oklch(0.78_0.18_155/0.6)]">
+            <div className="mb-3 flex items-center justify-between">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-primary">
+                Optimized Script · Read on Camera
+              </span>
+              <span className="rounded-full bg-primary/20 px-2 py-0.5 text-[10px] font-medium text-primary">
+                After
+              </span>
+            </div>
+            <ul className="space-y-2.5">
+              {SCRIPT_DOCTOR.optimized.map((line, i) => (
+                <li key={i} className="flex gap-2.5 text-sm leading-snug text-foreground">
+                  <ArrowRight className="mt-1 h-3.5 w-3.5 shrink-0 text-primary" />
+                  <span className="font-medium">{line}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </section>
+
       {/* Editing Matrix */}
       <section className="rounded-2xl border border-border bg-card p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
             <Scissors className="h-3.5 w-3.5 text-primary" />
-            Editing Matrix
+            The Editing Matrix · Production Recipe
           </div>
           <button
             onClick={onCopy}
@@ -188,8 +255,8 @@ function ResultView() {
               <thead className="bg-secondary/60 text-xs uppercase tracking-wider text-muted-foreground">
                 <tr>
                   <th className="w-16 px-4 py-3 font-semibold">Time</th>
-                  <th className="px-4 py-3 font-semibold">Spoken Line (Cleaned Telugu)</th>
-                  <th className="px-4 py-3 font-semibold">Visual &amp; Audio Directives</th>
+                  <th className="px-4 py-3 font-semibold">Optimized Line</th>
+                  <th className="px-4 py-3 font-semibold">Visual, Audio &amp; Pacing Cues</th>
                 </tr>
               </thead>
               <tbody>
