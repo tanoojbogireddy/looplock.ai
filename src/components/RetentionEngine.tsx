@@ -207,8 +207,9 @@ function Pill({
   );
 }
 
-function ResultView() {
-  const [rows, setRows] = useState<MatrixRow[]>(INITIAL_MATRIX);
+function ResultView({ lang }: { lang: Lang }) {
+  const pack = LANG_PACK[lang];
+  const [rows, setRows] = useState<MatrixRow[]>(pack.matrix);
   const [copied, setCopied] = useState(false);
 
   const regenerate = (i: number) => {
@@ -237,7 +238,7 @@ function ResultView() {
       {/* Auto-detected pills */}
       <div className="flex flex-wrap items-center gap-2">
         <Pill bg="#00FF66">
-          <Languages className="h-3 w-3" /> Detected: Telugu
+          <Languages className="h-3 w-3" /> Detected: {lang}
         </Pill>
         <Pill>Platform: Instagram Reels</Pill>
         <Pill bg="#FFD93D">Style: High-Energy Viral</Pill>
@@ -257,8 +258,7 @@ function ResultView() {
             </span>
           </div>
           <p className="mt-4 text-sm leading-relaxed text-black">
-            <span className="font-bold">Fluff Diagnosis:</span> మొదటి 8 సెకన్లు "welcome back" అని మీ గురించి
-            మాట్లాడుతూ వృథా చేశారు. వీక్షకులు వెంటనే స్వైప్ చేస్తారు.
+            <span className="font-bold">Fluff Diagnosis:</span> {pack.fluff}
           </p>
         </div>
 
@@ -294,7 +294,7 @@ function ResultView() {
           Rewritten Viral Hooks
         </div>
         <div className="mt-4 grid gap-3 md:grid-cols-3">
-          {HOOKS.map((h, i) => (
+          {pack.hooks.map((h, i) => (
             <div key={h.label} className="border-2 border-black bg-secondary p-4 shadow-[3px_3px_0px_0px_#000000]">
               <div className="flex items-center justify-between">
                 <span className="font-mono text-[10px] font-bold uppercase tracking-widest text-black">
@@ -336,7 +336,7 @@ function ResultView() {
               </span>
             </div>
             <p className="text-sm leading-relaxed text-muted-foreground line-through decoration-black/40 decoration-1">
-              {SCRIPT_DOCTOR.original}
+              {pack.doctor.original}
             </p>
           </div>
 
@@ -351,7 +351,7 @@ function ResultView() {
               </span>
             </div>
             <ul className="space-y-2.5">
-              {SCRIPT_DOCTOR.optimized.map((line, i) => (
+              {pack.doctor.optimized.map((line, i) => (
                 <li key={i} className="flex gap-2.5 text-sm leading-snug text-black">
                   <ArrowRight className="mt-1 h-3.5 w-3.5 shrink-0" />
                   <span className="font-semibold">{line}</span>
@@ -404,7 +404,9 @@ function ResultView() {
                     </td>
                     <td className="border-r-2 border-black px-4 py-4 align-top">
                       <p className="font-medium text-black">{row.line}</p>
-                      <p className="mt-1 font-mono text-xs italic text-muted-foreground">{row.lineRoman}</p>
+                      {row.lineRoman && (
+                        <p className="mt-1 font-mono text-xs italic text-muted-foreground">{row.lineRoman}</p>
+                      )}
                     </td>
                     <td className="px-4 py-4 align-top text-black">
                       <div className="flex items-start justify-between gap-3">
