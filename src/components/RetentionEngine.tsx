@@ -1,5 +1,18 @@
 import { useState } from "react";
-import { Loader2, Sparkles, Flame, Scissors, AlertTriangle, Zap, RefreshCw, Copy, Check, Languages, Stethoscope, ArrowRight } from "lucide-react";
+import {
+  Loader2,
+  Sparkles,
+  Flame,
+  Scissors,
+  AlertTriangle,
+  Zap,
+  RefreshCw,
+  Copy,
+  Check,
+  Languages,
+  Stethoscope,
+  ArrowRight,
+} from "lucide-react";
 
 type MatrixRow = { time: string; line: string; lineRoman: string; directive: string };
 
@@ -8,20 +21,6 @@ const HOOKS = [
   { label: "Curiosity Gap", text: "ఈ 5-నిమిషాల ఆటోమేషన్ ఇమెయిల్స్‌ను తమంతట తామే రిప్లై ఇచ్చేలా చేస్తుంది." },
   { label: "In Medias Res", text: "ఒక స్క్రిప్ట్ 3 సెకన్లలో 400 క్లయింట్ ఇమెయిల్స్ క్లియర్ చేయడం నేను చూశాను." },
 ];
-
-const SCRIPT_DOCTOR = {
-  original:
-    "హాయ్ గైస్, వెల్‌కమ్ బ్యాక్ టు మై ఛానల్! ఈరోజు నేను మీకు ఒక చాలా ఇంట్రెస్టింగ్ టాపిక్ గురించి చెప్పబోతున్నాను, అది ఏంటంటే... అమ్... మీరు రోజూ చాలా టైమ్ ఇమెయిల్స్ చెక్ చేయడంలో పెడుతున్నారు కదా? అంటే నేను కూడా చాలా స్ట్రగుల్ అయ్యాను దీంతో, సో నేను ఒక సొల్యూషన్ ఫైండ్ చేశాను, లెట్ మి షో యూ హౌ ఇట్ వర్క్స్...",
-  optimized: [
-    "మీరు రోజూ 4 గంటలు ఇమెయిల్స్‌లో వృథా చేస్తున్నారు.",
-    "ఇది ఇప్పుడే ఆపండి — మంచి మార్గం ఉంది.",
-    "మీ టోన్‌లోనే ఆటో-రిప్లై ఇచ్చే స్క్రిప్ట్ నేను రూపొందించాను.",
-    "15 సెకన్లలో ఇది ఎలా పనిచేస్తుందో చూడండి.",
-    "ఇది మీ చివరి 100 ఇమెయిల్స్ చదివి మీ వాయిస్ నేర్చుకుంటుంది.",
-    "తర్వాత ఒక్క ట్యాప్‌తో అప్రూవ్ చేసే రిప్లై తయారు చేస్తుంది.",
-    "గత వారం నేను 19 గంటలు సేవ్ చేశాను. లింక్ బయోలో ఉంది.",
-  ],
-};
 
 const ALT_DIRECTIVES: Record<string, string[]> = {
   "0:00": [
@@ -71,13 +70,63 @@ const INITIAL_MATRIX: MatrixRow[] = [
   { time: "0:22", line: "గత వారం నేను 19 గంటలు సేవ్ చేశాను. లింక్ బయోలో ఉంది.", lineRoman: "Gata varam nenu 19 gantalu save chesanu. Link bio lo undi.", directive: ALT_DIRECTIVES["0:22"][0] },
 ];
 
+const SCRIPT_DOCTOR = {
+  original:
+    "హాయ్ గైస్, వెల్‌కమ్ బ్యాక్ టు మై ఛానల్! ఈరోజు నేను మీకు ఒక చాలా ఇంట్రెస్టింగ్ టాపిక్ గురించి చెప్పబోతున్నాను, అది ఏంటంటే... అమ్... మీరు రోజూ చాలా టైమ్ ఇమెయిల్స్ చెక్ చేయడంలో పెడుతున్నారు కదా? అంటే నేను కూడా చాలా స్ట్రగుల్ అయ్యాను దీంతో, సో నేను ఒక సొల్యూషన్ ఫైండ్ చేశాను, లెట్ మి షో యూ హౌ ఇట్ వర్క్స్...",
+  optimized: INITIAL_MATRIX.map((r) => r.line),
+};
+
+// Neo-brutalist primitives
+const CARD = "border-2 border-black bg-white shadow-[6px_6px_0px_0px_#000000]";
+const PANE = "border-2 border-black bg-white shadow-[8px_8px_0px_0px_#000000]";
+const BTN_PRIMARY =
+  "inline-flex items-center justify-center gap-2 border-2 border-black bg-[#FF5E8C] px-5 py-3 text-sm font-extrabold uppercase tracking-wider text-black shadow-[4px_4px_0px_0px_#000000] transition-all hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_#000000] active:translate-x-[4px] active:translate-y-[4px] active:shadow-[0px_0px_0px_0px_#000000] disabled:cursor-not-allowed disabled:opacity-70";
+const BTN_SECONDARY =
+  "inline-flex items-center justify-center gap-2 border-2 border-black bg-white px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-black shadow-[3px_3px_0px_0px_#000000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0px_0px_#000000]";
+
+function WindowPane({
+  title,
+  accent = "#FFD93D",
+  children,
+  right,
+}: {
+  title: string;
+  accent?: string;
+  children: React.ReactNode;
+  right?: React.ReactNode;
+}) {
+  return (
+    <div className={PANE}>
+      <div
+        className="flex items-center justify-between border-b-2 border-black px-4 py-2.5"
+        style={{ backgroundColor: accent }}
+      >
+        <div className="flex items-center gap-2 font-mono text-xs font-bold uppercase tracking-widest text-black">
+          {title}
+        </div>
+        <div className="flex items-center gap-3">
+          {right}
+          <div className="flex items-center gap-1.5">
+            <span className="h-3 w-3 border-2 border-black bg-[#FF5E5E]" />
+            <span className="h-3 w-3 border-2 border-black bg-[#FFD93D]" />
+            <span className="h-3 w-3 border-2 border-black bg-[#00FF66]" />
+          </div>
+        </div>
+      </div>
+      <div className="p-5">{children}</div>
+    </div>
+  );
+}
+
 function PlaceholderState() {
   return (
-    <div className="flex h-full min-h-[480px] flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-card/40 p-10 text-center">
-      <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 ring-1 ring-primary/30">
-        <Sparkles className="h-8 w-8 text-primary" />
+    <div className={`${CARD} flex h-full min-h-[480px] flex-col items-center justify-center p-10 text-center`}>
+      <div className="mb-6 flex h-16 w-16 items-center justify-center border-2 border-black bg-[#00FF66] shadow-[4px_4px_0px_0px_#000000]">
+        <Sparkles className="h-8 w-8 text-black" />
       </div>
-      <h3 className="text-lg font-semibold text-foreground">Your video blueprint will appear here</h3>
+      <h3 className="font-serif text-2xl font-bold tracking-tight text-black">
+        Your video blueprint will appear here
+      </h3>
       <p className="mt-2 max-w-sm text-sm text-muted-foreground">
         Drop a raw script in any language. We'll auto-detect everything and return a retention-first cut.
       </p>
@@ -87,11 +136,34 @@ function PlaceholderState() {
 
 function LoadingState() {
   return (
-    <div className="flex h-full min-h-[480px] flex-col items-center justify-center rounded-2xl border border-border bg-card/40 p-10 text-center">
-      <Loader2 className="h-10 w-10 animate-spin text-primary" />
-      <p className="mt-5 text-sm font-medium text-foreground">Detecting language &amp; analyzing retention curve…</p>
-      <p className="mt-1 text-xs text-muted-foreground">Auto-routing platform style, rewriting hooks, building editing matrix.</p>
+    <div className={`${CARD} flex h-full min-h-[480px] flex-col items-center justify-center p-10 text-center`}>
+      <div className="border-2 border-black bg-[#FFD93D] p-5 shadow-[4px_4px_0px_0px_#000000]">
+        <Loader2 className="h-10 w-10 animate-spin text-black" />
+      </div>
+      <p className="mt-5 font-mono text-sm font-bold uppercase tracking-wider text-black">
+        Detecting language &amp; analyzing retention…
+      </p>
+      <p className="mt-1 text-xs text-muted-foreground">
+        Auto-routing platform style, rewriting hooks, building editing matrix.
+      </p>
     </div>
+  );
+}
+
+function Pill({
+  children,
+  bg = "#FFFFFF",
+}: {
+  children: React.ReactNode;
+  bg?: string;
+}) {
+  return (
+    <span
+      className="inline-flex items-center gap-1.5 border-2 border-black px-3 py-1 text-xs font-bold uppercase tracking-wider text-black shadow-[2px_2px_0px_0px_#000000]"
+      style={{ backgroundColor: bg }}
+    >
+      {children}
+    </span>
   );
 }
 
@@ -110,9 +182,7 @@ function ResultView() {
   };
 
   const onCopy = async () => {
-    const text = rows
-      .map((r) => `${r.time}\t${r.line}\t${r.directive}`)
-      .join("\n");
+    const text = rows.map((r) => `${r.time}\t${r.line}\t${r.directive}`).join("\n");
     try {
       await navigator.clipboard.writeText(text);
     } catch {
@@ -123,158 +193,187 @@ function ResultView() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Auto-detected pills */}
       <div className="flex flex-wrap items-center gap-2">
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
+        <Pill bg="#00FF66">
           <Languages className="h-3 w-3" /> Detected: Telugu
-        </span>
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-secondary/40 px-3 py-1 text-xs text-muted-foreground">
-          Platform: Instagram Reels
-        </span>
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-secondary/40 px-3 py-1 text-xs text-muted-foreground">
-          Style: High-Energy Viral
-        </span>
+        </Pill>
+        <Pill>Platform: Instagram Reels</Pill>
+        <Pill bg="#FFD93D">Style: High-Energy Viral</Pill>
       </div>
 
-      {/* Retention Audit */}
-      <section className="rounded-2xl border border-border bg-card p-6">
-        <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-          <AlertTriangle className="h-3.5 w-3.5" />
-          Retention Audit
+      {/* Metrics row */}
+      <div className="grid gap-5 md:grid-cols-2">
+        <div className={`${CARD} p-5`}>
+          <div className="flex items-center gap-2 font-mono text-[10px] font-bold uppercase tracking-widest text-black">
+            <AlertTriangle className="h-3.5 w-3.5" />
+            Retention Audit
+          </div>
+          <div className="mt-4">
+            <span className="inline-flex items-center gap-2 border-2 border-black bg-[#FF5E5E] px-3 py-1.5 text-sm font-extrabold uppercase tracking-wider text-black shadow-[3px_3px_0px_0px_#000000]">
+              <Flame className="h-4 w-4" />
+              Drop-off Risk 8/10
+            </span>
+          </div>
+          <p className="mt-4 text-sm leading-relaxed text-black">
+            <span className="font-bold">Fluff Diagnosis:</span> మొదటి 8 సెకన్లు "welcome back" అని మీ గురించి
+            మాట్లాడుతూ వృథా చేశారు. వీక్షకులు వెంటనే స్వైప్ చేస్తారు.
+          </p>
         </div>
-        <div className="mt-4 flex flex-wrap items-center gap-3">
-          <span className="inline-flex items-center gap-2 rounded-full border border-destructive/40 bg-destructive/15 px-4 py-1.5 text-sm font-semibold text-destructive">
-            <Flame className="h-4 w-4" />
-            Drop-off Risk: 8/10 — High Threat
-          </span>
+
+        <div className={`${CARD} p-5`}>
+          <div className="flex items-center gap-2 font-mono text-[10px] font-bold uppercase tracking-widest text-black">
+            <Zap className="h-3.5 w-3.5" />
+            Optimization Score
+          </div>
+          <div className="mt-4">
+            <span className="inline-flex items-center gap-2 border-2 border-black bg-[#00FF66] px-3 py-1.5 text-sm font-extrabold uppercase tracking-wider text-black shadow-[3px_3px_0px_0px_#000000]">
+              +312% Watch-Time
+            </span>
+          </div>
+          <div className="mt-4 grid grid-cols-3 gap-2 text-center">
+            {[
+              { k: "Filler", v: "−68%" },
+              { k: "Hooks", v: "3 New" },
+              { k: "Cuts", v: "7" },
+            ].map((m) => (
+              <div key={m.k} className="border-2 border-black bg-secondary p-2">
+                <div className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">{m.k}</div>
+                <div className="mt-0.5 font-serif text-base font-bold text-black">{m.v}</div>
+              </div>
+            ))}
+          </div>
         </div>
-        <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
-          <span className="font-semibold text-foreground">Fluff Diagnosis:</span> మొదటి 8 సెకన్లు "welcome back" అని
-          మీ గురించి మాట్లాడుతూ వృథా చేశారు. వీక్షకులు వెంటనే స్వైప్ చేస్తారు.
-        </p>
-      </section>
+      </div>
 
       {/* Rewritten Hooks */}
-      <section className="rounded-2xl border border-border bg-card p-6">
-        <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-          <Zap className="h-3.5 w-3.5 text-primary" />
+      <div className={`${CARD} p-5`}>
+        <div className="flex items-center gap-2 font-mono text-[10px] font-bold uppercase tracking-widest text-black">
+          <Zap className="h-3.5 w-3.5" />
           Rewritten Viral Hooks
         </div>
         <div className="mt-4 grid gap-3 md:grid-cols-3">
           {HOOKS.map((h, i) => (
-            <div
-              key={h.label}
-              className="group relative overflow-hidden rounded-xl border border-border bg-secondary/40 p-4 transition hover:border-primary/50"
-            >
+            <div key={h.label} className="border-2 border-black bg-secondary p-4 shadow-[3px_3px_0px_0px_#000000]">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold uppercase tracking-widest text-primary">Hook {i + 1}</span>
-                <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">{h.label}</span>
+                <span className="font-mono text-[10px] font-bold uppercase tracking-widest text-black">
+                  Hook 0{i + 1}
+                </span>
+                <span className="border-2 border-black bg-white px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-black">
+                  {h.label}
+                </span>
               </div>
-              <p className="mt-3 text-sm font-medium leading-snug text-foreground">"{h.text}"</p>
+              <p className="mt-3 text-sm font-medium leading-snug text-black">"{h.text}"</p>
             </div>
           ))}
         </div>
-      </section>
+      </div>
 
-      {/* Script Doctor */}
-      <section className="rounded-2xl border border-border bg-card p-6">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-            <Stethoscope className="h-3.5 w-3.5 text-primary" />
-            The Script Doctor
-          </div>
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-widest text-primary">
-            −68% Filler
-          </span>
+      {/* SCRIPT DOCTOR window pane */}
+      <WindowPane
+        title="script-doctor.exe"
+        accent="#FFD93D"
+        right={<Pill bg="#00FF66">−68% Filler</Pill>}
+      >
+        <div className="mb-4 flex items-center gap-2">
+          <Stethoscope className="h-5 w-5 text-black" />
+          <h3 className="font-serif text-2xl font-bold tracking-tight text-black">The Script Doctor</h3>
         </div>
-        <p className="mt-2 text-sm text-muted-foreground">
+        <p className="mb-5 text-sm text-muted-foreground">
           Aggressive cut-down: conversational fluff stripped into punchy, teleprompter-ready lines.
         </p>
 
-        <div className="mt-5 grid gap-4 md:grid-cols-2">
+        <div className="grid gap-5 md:grid-cols-2">
           {/* Original */}
-          <div className="rounded-xl border border-border bg-background/40 p-5">
+          <div className="border-2 border-black bg-secondary p-5 shadow-[4px_4px_0px_0px_#000000]">
             <div className="mb-3 flex items-center justify-between">
-              <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+              <span className="font-mono text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                 Original Raw Draft
               </span>
-              <span className="rounded-full bg-destructive/15 px-2 py-0.5 text-[10px] font-medium text-destructive">
+              <span className="border-2 border-black bg-[#FF5E5E] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-black">
                 Before
               </span>
             </div>
-            <p className="text-sm leading-relaxed text-muted-foreground/70 line-through decoration-destructive/40 decoration-1">
+            <p className="text-sm leading-relaxed text-muted-foreground line-through decoration-black/40 decoration-1">
               {SCRIPT_DOCTOR.original}
             </p>
           </div>
 
           {/* Optimized */}
-          <div className="relative rounded-xl border border-primary/40 bg-primary/5 p-5 shadow-[0_0_30px_-12px_oklch(0.78_0.18_155/0.6)]">
+          <div className="border-2 border-black bg-[#00FF66]/30 p-5 shadow-[4px_4px_0px_0px_#000000]">
             <div className="mb-3 flex items-center justify-between">
-              <span className="text-[10px] font-bold uppercase tracking-widest text-primary">
-                Optimized Script · Read on Camera
+              <span className="font-mono text-[10px] font-bold uppercase tracking-widest text-black">
+                Optimized · Read on Camera
               </span>
-              <span className="rounded-full bg-primary/20 px-2 py-0.5 text-[10px] font-medium text-primary">
+              <span className="border-2 border-black bg-[#00FF66] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-black">
                 After
               </span>
             </div>
             <ul className="space-y-2.5">
               {SCRIPT_DOCTOR.optimized.map((line, i) => (
-                <li key={i} className="flex gap-2.5 text-sm leading-snug text-foreground">
-                  <ArrowRight className="mt-1 h-3.5 w-3.5 shrink-0 text-primary" />
-                  <span className="font-medium">{line}</span>
+                <li key={i} className="flex gap-2.5 text-sm leading-snug text-black">
+                  <ArrowRight className="mt-1 h-3.5 w-3.5 shrink-0" />
+                  <span className="font-semibold">{line}</span>
                 </li>
               ))}
             </ul>
           </div>
         </div>
-      </section>
+      </WindowPane>
 
-      {/* Editing Matrix */}
-      <section className="rounded-2xl border border-border bg-card p-6">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-            <Scissors className="h-3.5 w-3.5 text-primary" />
-            The Editing Matrix · Production Recipe
-          </div>
-          <button
-            onClick={onCopy}
-            className={`group inline-flex items-center gap-2 rounded-xl border px-4 py-2 text-xs font-semibold transition ${
-              copied
-                ? "border-primary/60 bg-primary/15 text-primary"
-                : "border-primary/40 bg-primary/10 text-primary hover:bg-primary/15"
-            } shadow-[0_0_20px_-6px_oklch(0.78_0.18_155/0.6)] hover:shadow-[0_0_28px_-4px_oklch(0.78_0.18_155/0.8)]`}
-          >
+      {/* EDITING MATRIX window pane */}
+      <WindowPane
+        title="editing-matrix.exe"
+        accent="#FF5E8C"
+        right={
+          <button onClick={onCopy} className={BTN_SECONDARY} style={{ backgroundColor: copied ? "#00FF66" : "#ffffff" }}>
             {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
             {copied ? "Copied!" : "Copy Blueprint"}
           </button>
+        }
+      >
+        <div className="mb-4 flex items-center gap-2">
+          <Scissors className="h-5 w-5 text-black" />
+          <h3 className="font-serif text-2xl font-bold tracking-tight text-black">The Editing Matrix</h3>
         </div>
-        <div className="mt-4 overflow-hidden rounded-xl border border-border">
+        <p className="mb-5 text-sm text-muted-foreground">
+          Production recipe: timestamped pattern interrupts, sound effects, and camera moves every 3–5 seconds.
+        </p>
+
+        <div className="overflow-hidden border-2 border-black">
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-secondary/60 text-xs uppercase tracking-wider text-muted-foreground">
+            <table className="w-full border-collapse text-left text-sm">
+              <thead className="bg-black text-xs uppercase tracking-widest text-white">
                 <tr>
-                  <th className="w-16 px-4 py-3 font-semibold">Time</th>
-                  <th className="px-4 py-3 font-semibold">Optimized Line</th>
-                  <th className="px-4 py-3 font-semibold">Visual, Audio &amp; Pacing Cues</th>
+                  <th className="w-20 border-r-2 border-white/20 px-4 py-3 font-mono font-bold">Time</th>
+                  <th className="border-r-2 border-white/20 px-4 py-3 font-mono font-bold">Optimized Line</th>
+                  <th className="px-4 py-3 font-mono font-bold">Visual, Audio &amp; Pacing Cues</th>
                 </tr>
               </thead>
               <tbody>
                 {rows.map((row, idx) => (
-                  <tr key={row.time} className={idx % 2 === 0 ? "bg-card" : "bg-secondary/25"}>
-                    <td className="whitespace-nowrap px-4 py-4 align-top font-mono text-xs text-primary">{row.time}</td>
-                    <td className="px-4 py-4 align-top">
-                      <p className="text-foreground">{row.line}</p>
-                      <p className="mt-1 text-xs italic text-muted-foreground/80">{row.lineRoman}</p>
+                  <tr
+                    key={row.time}
+                    className={`border-t-2 border-black ${idx % 2 === 0 ? "bg-white" : "bg-secondary"}`}
+                  >
+                    <td className="whitespace-nowrap border-r-2 border-black px-4 py-4 align-top">
+                      <span className="inline-block border-2 border-black bg-[#FFD93D] px-2 py-0.5 font-mono text-xs font-bold text-black">
+                        {row.time}
+                      </span>
                     </td>
-                    <td className="px-4 py-4 align-top text-muted-foreground">
+                    <td className="border-r-2 border-black px-4 py-4 align-top">
+                      <p className="font-medium text-black">{row.line}</p>
+                      <p className="mt-1 font-mono text-xs italic text-muted-foreground">{row.lineRoman}</p>
+                    </td>
+                    <td className="px-4 py-4 align-top text-black">
                       <div className="flex items-start justify-between gap-3">
-                        <span className="flex-1">{row.directive}</span>
+                        <span className="flex-1 text-sm">{row.directive}</span>
                         <button
                           onClick={() => regenerate(idx)}
                           aria-label="Regenerate cue"
                           title="Regenerate cue"
-                          className="group/btn mt-0.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-border/60 bg-background/40 text-muted-foreground transition hover:border-primary/50 hover:bg-primary/10 hover:text-primary"
+                          className="group/btn inline-flex h-8 w-8 shrink-0 items-center justify-center border-2 border-black bg-white text-black shadow-[2px_2px_0px_0px_#000000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:bg-[#FFD93D] hover:shadow-[1px_1px_0px_0px_#000000]"
                         >
                           <RefreshCw className="h-3.5 w-3.5 transition group-hover/btn:rotate-180" />
                         </button>
@@ -286,7 +385,7 @@ function ResultView() {
             </table>
           </div>
         </div>
-      </section>
+      </WindowPane>
     </div>
   );
 }
@@ -302,59 +401,65 @@ export function RetentionEngine() {
 
   return (
     <main className="min-h-screen bg-background text-foreground">
-      {/* Ambient glow */}
-      <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
-        <div className="absolute -top-40 left-1/2 h-[480px] w-[820px] -translate-x-1/2 rounded-full bg-primary/10 blur-[140px]" />
-        <div className="absolute bottom-0 right-0 h-[360px] w-[480px] rounded-full bg-primary/5 blur-[120px]" />
-      </div>
-
       <div className="mx-auto max-w-7xl px-5 py-10 lg:px-8 lg:py-14">
         {/* Header */}
         <header className="mb-10 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/15 ring-1 ring-primary/30">
-              <Zap className="h-4 w-4 text-primary" />
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-10 w-10 items-center justify-center border-2 border-black bg-[#FF5E8C] shadow-[3px_3px_0px_0px_#000000]">
+              <Zap className="h-5 w-5 text-black" />
             </div>
-            <span className="text-sm font-semibold tracking-tight">Retention Engine</span>
+            <span className="font-mono text-sm font-bold uppercase tracking-widest text-black">
+              Retention Engine
+            </span>
           </div>
-          <span className="hidden rounded-full border border-border bg-card/60 px-3 py-1 text-xs text-muted-foreground sm:inline">
-            v1.0 · Magic Box · Auto-detect everything
-          </span>
+          <Pill bg="#FFD93D">v1.0 · Magic Box</Pill>
         </header>
+
+        {/* Hero */}
+        <div className="mb-10 max-w-4xl">
+          <Pill bg="#00FF66">
+            <span className="h-1.5 w-1.5 bg-black" /> Magic Box · Auto-detect everything
+          </Pill>
+          <h1 className="mt-5 font-serif text-5xl font-bold leading-[1.05] tracking-tight text-black md:text-6xl lg:text-7xl">
+            You've never met an
+            <br />
+            <span className="relative inline-block">
+              <span className="relative z-10 px-2">editing engine</span>
+              <span className="absolute inset-0 -z-0 bg-[#FF5E8C]" />
+            </span>{" "}
+            like this.
+          </h1>
+          <p className="mt-5 max-w-2xl text-base text-muted-foreground">
+            Transform raw scripts into high-retention video blueprints. Zero settings, zero friction —
+            paste, analyze, ship.
+          </p>
+        </div>
 
         <div className="grid gap-8 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
           {/* INPUT */}
           <section>
-            <div className="mb-6">
-              <span className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
-                <span className="h-1.5 w-1.5 rounded-full bg-primary" /> Magic Box
-              </span>
-              <h1 className="mt-4 text-4xl font-bold tracking-tight md:text-5xl">
-                The Retention <span className="text-primary">Engine</span>
-              </h1>
-              <p className="mt-3 text-base text-muted-foreground">
-                Transform raw scripts into high-retention video blueprints — zero settings, zero friction.
-              </p>
-            </div>
-
-            <div className="rounded-2xl border border-border bg-card p-5">
+            <WindowPane title="workspace.txt" accent="#9FE7F5">
               <textarea
                 value={script}
                 onChange={(e) => setScript(e.target.value)}
                 placeholder="Drop ANY raw script here (English, Telugu, Hinglish, or any language)... Our AI will automatically detect the language, platform style, and format your pacing blueprint instantly."
                 rows={14}
-                className="w-full resize-none rounded-xl border border-border bg-background/60 p-4 text-base leading-relaxed text-foreground placeholder:text-muted-foreground/70 focus:border-primary/60 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                className="w-full resize-none border-2 border-black bg-white p-4 font-mono text-sm leading-relaxed text-black placeholder:text-muted-foreground focus:outline-none focus:ring-0"
               />
 
               <button
                 onClick={onAnalyze}
                 disabled={status === "loading"}
-                className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3.5 text-sm font-semibold text-primary-foreground shadow-[0_0_24px_-6px_oklch(0.78_0.18_155/0.6)] transition hover:shadow-[0_0_36px_-4px_oklch(0.78_0.18_155/0.75)] disabled:cursor-not-allowed disabled:opacity-60"
+                className={`${BTN_PRIMARY} mt-4 w-full py-3.5 text-base`}
               >
-                {status === "loading" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                {status === "loading" ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Sparkles className="h-4 w-4" />
+                )}
                 Analyze &amp; Optimize Script
               </button>
-            </div>
+            </WindowPane>
           </section>
 
           {/* OUTPUT */}
