@@ -80,7 +80,7 @@ const SCRIPT_DOCTOR = {
 const CARD = "border-2 border-black bg-white shadow-[6px_6px_0px_0px_#000000]";
 const PANE = "border-2 border-black bg-white shadow-[8px_8px_0px_0px_#000000]";
 const BTN_PRIMARY =
-  "inline-flex items-center justify-center gap-2 border-2 border-black bg-[#FF5E8C] px-5 py-3 text-sm font-extrabold uppercase tracking-wider text-black shadow-[4px_4px_0px_0px_#000000] transition-all hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_#000000] active:translate-x-[4px] active:translate-y-[4px] active:shadow-[0px_0px_0px_0px_#000000] disabled:cursor-not-allowed disabled:opacity-70";
+  "inline-flex items-center justify-center gap-2 border-2 border-black bg-[#00E5D1] px-5 py-3 text-sm font-extrabold uppercase tracking-wider text-black shadow-[4px_4px_0px_0px_#000000] transition-all hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_#000000] active:translate-x-[4px] active:translate-y-[4px] active:shadow-[0px_0px_0px_0px_#000000] disabled:cursor-not-allowed disabled:opacity-70";
 const BTN_SECONDARY =
   "inline-flex items-center justify-center gap-2 border-2 border-black bg-white px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-black shadow-[3px_3px_0px_0px_#000000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0px_0px_#000000]";
 
@@ -325,7 +325,7 @@ function ResultView() {
       {/* EDITING MATRIX window pane */}
       <WindowPane
         title="editing-matrix.exe"
-        accent="#FF5E8C"
+        accent="#00E5D1"
         right={
           <button onClick={onCopy} className={BTN_SECONDARY} style={{ backgroundColor: copied ? "#00FF66" : "#ffffff" }}>
             {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
@@ -405,7 +405,7 @@ export function RetentionEngine() {
         {/* Header */}
         <header className="mb-10 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-10 w-10 items-center justify-center border-2 border-black bg-[#FF5E8C] shadow-[3px_3px_0px_0px_#000000]">
+            <div className="flex h-10 w-10 items-center justify-center border-2 border-black bg-[#00E5D1] shadow-[3px_3px_0px_0px_#000000]">
               <Zap className="h-5 w-5 text-black" />
             </div>
             <span className="font-mono text-sm font-bold uppercase tracking-widest text-black">
@@ -425,7 +425,7 @@ export function RetentionEngine() {
             <br />
             <span className="relative inline-block">
               <span className="relative z-10 px-2">editing engine</span>
-              <span className="absolute inset-0 -z-0 bg-[#FF5E8C]" />
+              <span className="absolute inset-0 -z-0 bg-[#00E5D1]" />
             </span>{" "}
             like this.
           </h1>
