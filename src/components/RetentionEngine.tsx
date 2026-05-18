@@ -16,10 +16,27 @@ import {
 
 type MatrixRow = { time: string; line: string; lineRoman: string; directive: string };
 
-const HOOKS = [
+type Lang = "Telugu" | "Hindi" | "Spanish" | "English";
+
+function detectLanguage(text: string): Lang {
+  const t = text.trim();
+  if (!t) return "English";
+  if (/[\u0C00-\u0C7F]/.test(t)) return "Telugu";
+  if (/[\u0900-\u097F]/.test(t)) return "Hindi";
+  if (/[áéíóúñ¿¡]/i.test(t)) return "Spanish";
+  return "English";
+}
+
+const HOOKS_TE = [
   { label: "Negative Frame", text: "మీరు రోజూ 4 గంటలు ఇమెయిల్స్‌లో వృథా చేస్తున్నారు. ఇది ఇప్పుడే ఆపండి." },
   { label: "Curiosity Gap", text: "ఈ 5-నిమిషాల ఆటోమేషన్ ఇమెయిల్స్‌ను తమంతట తామే రిప్లై ఇచ్చేలా చేస్తుంది." },
   { label: "In Medias Res", text: "ఒక స్క్రిప్ట్ 3 సెకన్లలో 400 క్లయింట్ ఇమెయిల్స్ క్లియర్ చేయడం నేను చూశాను." },
+];
+
+const HOOKS_EN = [
+  { label: "Negative Frame", text: "You're wasting 4 hours a day inside your inbox. Stop — right now." },
+  { label: "Curiosity Gap", text: "This 5-minute automation makes emails reply to themselves, in your voice." },
+  { label: "In Medias Res", text: "I just watched one script clear 400 client emails in 3 seconds flat." },
 ];
 
 const ALT_DIRECTIVES: Record<string, string[]> = {
@@ -60,7 +77,7 @@ const ALT_DIRECTIVES: Record<string, string[]> = {
   ],
 };
 
-const INITIAL_MATRIX: MatrixRow[] = [
+const INITIAL_MATRIX_TE: MatrixRow[] = [
   { time: "0:00", line: "మీరు రోజూ 4 గంటలు ఇమెయిల్స్‌లో వృథా చేస్తున్నారు.", lineRoman: "Meeru roju 4 gantalu emails lo vrutha chestunnaru.", directive: ALT_DIRECTIVES["0:00"][0] },
   { time: "0:03", line: "ఇది ఇప్పుడే ఆపండి — మంచి మార్గం ఉంది.", lineRoman: "Idi ippude apandi — manchi margam undi.", directive: ALT_DIRECTIVES["0:03"][0] },
   { time: "0:06", line: "మీ టోన్‌లోనే ఆటో-రిప్లై ఇచ్చే స్క్రిప్ట్ నేను రూపొందించాను.", lineRoman: "Mee tone lone auto-reply iche script nenu roopondinchanu.", directive: ALT_DIRECTIVES["0:06"][0] },
@@ -70,10 +87,33 @@ const INITIAL_MATRIX: MatrixRow[] = [
   { time: "0:22", line: "గత వారం నేను 19 గంటలు సేవ్ చేశాను. లింక్ బయోలో ఉంది.", lineRoman: "Gata varam nenu 19 gantalu save chesanu. Link bio lo undi.", directive: ALT_DIRECTIVES["0:22"][0] },
 ];
 
-const SCRIPT_DOCTOR = {
+const INITIAL_MATRIX_EN: MatrixRow[] = [
+  { time: "0:00", line: "You're burning 4 hours a day inside your inbox.", lineRoman: "", directive: ALT_DIRECTIVES["0:00"][0] },
+  { time: "0:03", line: "Stop. There's a smarter way — and it's already built.", lineRoman: "", directive: ALT_DIRECTIVES["0:03"][0] },
+  { time: "0:06", line: "I built a script that auto-replies in your exact tone.", lineRoman: "", directive: ALT_DIRECTIVES["0:06"][0] },
+  { time: "0:10", line: "Watch how it works in the next 15 seconds.", lineRoman: "", directive: ALT_DIRECTIVES["0:10"][0] },
+  { time: "0:14", line: "It reads your last 100 emails and learns your voice.", lineRoman: "", directive: ALT_DIRECTIVES["0:14"][0] },
+  { time: "0:18", line: "Then it drafts a one-tap-approve reply for every new email.", lineRoman: "", directive: ALT_DIRECTIVES["0:18"][0] },
+  { time: "0:22", line: "Last week it saved me 19 hours. Link's in the bio.", lineRoman: "", directive: ALT_DIRECTIVES["0:22"][0] },
+];
+
+const SCRIPT_DOCTOR_TE = {
   original:
     "హాయ్ గైస్, వెల్‌కమ్ బ్యాక్ టు మై ఛానల్! ఈరోజు నేను మీకు ఒక చాలా ఇంట్రెస్టింగ్ టాపిక్ గురించి చెప్పబోతున్నాను, అది ఏంటంటే... అమ్... మీరు రోజూ చాలా టైమ్ ఇమెయిల్స్ చెక్ చేయడంలో పెడుతున్నారు కదా? అంటే నేను కూడా చాలా స్ట్రగుల్ అయ్యాను దీంతో, సో నేను ఒక సొల్యూషన్ ఫైండ్ చేశాను, లెట్ మి షో యూ హౌ ఇట్ వర్క్స్...",
-  optimized: INITIAL_MATRIX.map((r) => r.line),
+  optimized: INITIAL_MATRIX_TE.map((r) => r.line),
+};
+
+const SCRIPT_DOCTOR_EN = {
+  original:
+    "Hey guys, welcome back to my channel! So today I wanted to talk about something really, really interesting, um, basically you know how we all spend like a crazy amount of time every single day just checking emails over and over again? Yeah, I struggled with this too for the longest time, so I went ahead and found a solution, and let me kind of walk you through how it actually works…",
+  optimized: INITIAL_MATRIX_EN.map((r) => r.line),
+};
+
+const LANG_PACK: Record<Lang, { hooks: typeof HOOKS_EN; matrix: MatrixRow[]; doctor: typeof SCRIPT_DOCTOR_EN; fluff: string }> = {
+  Telugu: { hooks: HOOKS_TE, matrix: INITIAL_MATRIX_TE, doctor: SCRIPT_DOCTOR_TE, fluff: 'మొదటి 8 సెకన్లు "welcome back" అని మీ గురించి మాట్లాడుతూ వృథా చేశారు. వీక్షకులు వెంటనే స్వైప్ చేస్తారు.' },
+  English: { hooks: HOOKS_EN, matrix: INITIAL_MATRIX_EN, doctor: SCRIPT_DOCTOR_EN, fluff: 'The first 8 seconds are spent on "welcome back" filler. Viewers swipe before you even reach the hook.' },
+  Hindi: { hooks: HOOKS_EN, matrix: INITIAL_MATRIX_EN, doctor: SCRIPT_DOCTOR_EN, fluff: 'The first 8 seconds are spent on "welcome back" filler. Viewers swipe before you even reach the hook.' },
+  Spanish: { hooks: HOOKS_EN, matrix: INITIAL_MATRIX_EN, doctor: SCRIPT_DOCTOR_EN, fluff: 'The first 8 seconds are spent on "welcome back" filler. Viewers swipe before you even reach the hook.' },
 };
 
 // Neo-brutalist primitives
