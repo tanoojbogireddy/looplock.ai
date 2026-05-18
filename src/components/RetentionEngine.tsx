@@ -435,8 +435,10 @@ function ResultView({ lang }: { lang: Lang }) {
 export function RetentionEngine() {
   const [script, setScript] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "done">("idle");
+  const [detectedLang, setDetectedLang] = useState<Lang>("English");
 
   const onAnalyze = () => {
+    setDetectedLang(detectLanguage(script));
     setStatus("loading");
     setTimeout(() => setStatus("done"), 1500);
   };
@@ -508,7 +510,7 @@ export function RetentionEngine() {
           <section>
             {status === "idle" && <PlaceholderState />}
             {status === "loading" && <LoadingState />}
-            {status === "done" && <ResultView />}
+            {status === "done" && <ResultView lang={detectedLang} />}
           </section>
         </div>
       </div>
