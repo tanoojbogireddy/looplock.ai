@@ -12,6 +12,8 @@ import {
   Languages,
   Stethoscope,
   ArrowRight,
+  ArrowDown,
+  FileText,
 } from "lucide-react";
 
 type MatrixRow = { time: string; line: string; lineRoman: string; directive: string };
@@ -109,11 +111,33 @@ const SCRIPT_DOCTOR_EN = {
   optimized: INITIAL_MATRIX_EN.map((r) => r.line),
 };
 
-const LANG_PACK: Record<Lang, { hooks: typeof HOOKS_EN; matrix: MatrixRow[]; doctor: typeof SCRIPT_DOCTOR_EN; fluff: string }> = {
-  Telugu: { hooks: HOOKS_TE, matrix: INITIAL_MATRIX_TE, doctor: SCRIPT_DOCTOR_TE, fluff: 'మొదటి 8 సెకన్లు "welcome back" అని మీ గురించి మాట్లాడుతూ వృథా చేశారు. వీక్షకులు వెంటనే స్వైప్ చేస్తారు.' },
-  English: { hooks: HOOKS_EN, matrix: INITIAL_MATRIX_EN, doctor: SCRIPT_DOCTOR_EN, fluff: 'The first 8 seconds are spent on "welcome back" filler. Viewers swipe before you even reach the hook.' },
-  Hindi: { hooks: HOOKS_EN, matrix: INITIAL_MATRIX_EN, doctor: SCRIPT_DOCTOR_EN, fluff: 'The first 8 seconds are spent on "welcome back" filler. Viewers swipe before you even reach the hook.' },
-  Spanish: { hooks: HOOKS_EN, matrix: INITIAL_MATRIX_EN, doctor: SCRIPT_DOCTOR_EN, fluff: 'The first 8 seconds are spent on "welcome back" filler. Viewers swipe before you even reach the hook.' },
+type Replacement = { wrong: string; right: string };
+
+const REPLACEMENTS_TE: Replacement[] = [
+  { wrong: "హాయ్ గైస్, వెల్‌కమ్ బ్యాక్ టు మై ఛానల్!", right: INITIAL_MATRIX_TE[0].line },
+  { wrong: "ఈరోజు నేను మీకు ఒక చాలా ఇంట్రెస్టింగ్ టాపిక్ గురించి చెప్పబోతున్నాను, అది ఏంటంటే... అమ్...", right: INITIAL_MATRIX_TE[1].line },
+  { wrong: "మీరు రోజూ చాలా టైమ్ ఇమెయిల్స్ చెక్ చేయడంలో పెడుతున్నారు కదా?", right: INITIAL_MATRIX_TE[2].line },
+  { wrong: "అంటే నేను కూడా చాలా స్ట్రగుల్ అయ్యాను దీంతో,", right: INITIAL_MATRIX_TE[3].line },
+  { wrong: "సో నేను ఒక సొల్యూషన్ ఫైండ్ చేశాను,", right: INITIAL_MATRIX_TE[4].line },
+  { wrong: "లెట్ మి షో యూ హౌ ఇట్ వర్క్స్...", right: INITIAL_MATRIX_TE[5].line },
+  { wrong: "మీరు కూడా ట్రై చేసి చూడండి, లింక్ డిస్క్రిప్షన్ లో పెడతాను.", right: INITIAL_MATRIX_TE[6].line },
+];
+
+const REPLACEMENTS_EN: Replacement[] = [
+  { wrong: "Hey guys, welcome back to my channel!", right: INITIAL_MATRIX_EN[0].line },
+  { wrong: "So today I wanted to talk about something really, really interesting, um,", right: INITIAL_MATRIX_EN[1].line },
+  { wrong: "basically you know how we all spend like a crazy amount of time every single day just checking emails over and over again?", right: INITIAL_MATRIX_EN[2].line },
+  { wrong: "Yeah, I struggled with this too for the longest time,", right: INITIAL_MATRIX_EN[3].line },
+  { wrong: "so I went ahead and found a solution,", right: INITIAL_MATRIX_EN[4].line },
+  { wrong: "and let me kind of walk you through how it actually works…", right: INITIAL_MATRIX_EN[5].line },
+  { wrong: "Anyway, hope you guys enjoyed, don't forget to like and subscribe!", right: INITIAL_MATRIX_EN[6].line },
+];
+
+const LANG_PACK: Record<Lang, { hooks: typeof HOOKS_EN; matrix: MatrixRow[]; doctor: typeof SCRIPT_DOCTOR_EN; fluff: string; replacements: Replacement[] }> = {
+  Telugu: { hooks: HOOKS_TE, matrix: INITIAL_MATRIX_TE, doctor: SCRIPT_DOCTOR_TE, fluff: 'మొదటి 8 సెకన్లు "welcome back" అని మీ గురించి మాట్లాడుతూ వృథా చేశారు. వీక్షకులు వెంటనే స్వైప్ చేస్తారు.', replacements: REPLACEMENTS_TE },
+  English: { hooks: HOOKS_EN, matrix: INITIAL_MATRIX_EN, doctor: SCRIPT_DOCTOR_EN, fluff: 'The first 8 seconds are spent on "welcome back" filler. Viewers swipe before you even reach the hook.', replacements: REPLACEMENTS_EN },
+  Hindi: { hooks: HOOKS_EN, matrix: INITIAL_MATRIX_EN, doctor: SCRIPT_DOCTOR_EN, fluff: 'The first 8 seconds are spent on "welcome back" filler. Viewers swipe before you even reach the hook.', replacements: REPLACEMENTS_EN },
+  Spanish: { hooks: HOOKS_EN, matrix: INITIAL_MATRIX_EN, doctor: SCRIPT_DOCTOR_EN, fluff: 'The first 8 seconds are spent on "welcome back" filler. Viewers swipe before you even reach the hook.', replacements: REPLACEMENTS_EN },
 };
 
 // Neo-brutalist primitives
