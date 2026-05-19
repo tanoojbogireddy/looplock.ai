@@ -235,6 +235,8 @@ function ResultView({ lang }: { lang: Lang }) {
   const pack = LANG_PACK[lang];
   const [rows, setRows] = useState<MatrixRow[]>(pack.matrix);
   const [copied, setCopied] = useState(false);
+  const [assembled, setAssembled] = useState(false);
+  const [scriptCopied, setScriptCopied] = useState(false);
 
   const regenerate = (i: number) => {
     setRows((prev) => {
@@ -255,6 +257,18 @@ function ResultView({ lang }: { lang: Lang }) {
     }
     setCopied(true);
     setTimeout(() => setCopied(false), 1600);
+  };
+
+  const finalScript = pack.replacements.map((r) => r.right).join("\n\n");
+
+  const onCopyScript = async () => {
+    try {
+      await navigator.clipboard.writeText(finalScript);
+    } catch {
+      /* ignore */
+    }
+    setScriptCopied(true);
+    setTimeout(() => setScriptCopied(false), 1600);
   };
 
   return (
@@ -348,41 +362,84 @@ function ResultView({ lang }: { lang: Lang }) {
           Aggressive cut-down: conversational fluff stripped into punchy, teleprompter-ready lines.
         </p>
 
-        <div className="grid gap-5 md:grid-cols-2">
-          {/* Original */}
-          <div className="border-2 border-black bg-secondary p-5 shadow-[4px_4px_0px_0px_#000000]">
-            <div className="mb-3 flex items-center justify-between">
-              <span className="font-mono text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                Original Raw Draft
-              </span>
-              <span className="border-2 border-black bg-[#FF5E5E] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-black">
-                Before
-              </span>
-            </div>
-            <p className="text-sm leading-relaxed text-muted-foreground line-through decoration-black/40 decoration-1">
-              {pack.doctor.original}
-            </p>
-          </div>
+        {/* Line-by-line replacement grid */}
+        <div className="space-y-5">
+          {pack.replacements.map((r, i) => (
+            <div
+              key={i}
+              className="grid items-stretch gap-3 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]"
+            >
+              {/* WRONG */}
+              <div className="border-2 border-black bg-[#FF5E5E]/15 p-4 shadow-[4px_4px_0px_0px_#000000]">
+                <div className="mb-2 flex items-center justify-between">
+                  <span className="font-mono text-[10px] font-bold uppercase tracking-widest text-black">
+                    Line {String(i + 1).padStart(2, "0")}
+                  </span>
+                  <span className="border-2 border-black bg-[#FF5E5E] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-black">
+                    Wrong / Fluffy
+                  </span>
+                </div>
+                <p className="text-sm leading-snug text-black/80 line-through decoration-black/50 decoration-1">
+                  {r.wrong}
+                </p>
+              </div>
 
-          {/* Optimized */}
-          <div className="border-2 border-black bg-[#00FF66]/30 p-5 shadow-[4px_4px_0px_0px_#000000]">
-            <div className="mb-3 flex items-center justify-between">
-              <span className="font-mono text-[10px] font-bold uppercase tracking-widest text-black">
-                Optimized · Read on Camera
-              </span>
-              <span className="border-2 border-black bg-[#00FF66] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-black">
-                After
-              </span>
+              {/* Arrow */}
+              <div className="flex items-center justify-center">
+                <div className="flex h-10 w-10 items-center justify-center border-2 border-black bg-[#00E5D1] shadow-[3px_3px_0px_0px_#000000]">
+                  <ArrowRight className="hidden h-5 w-5 text-black md:block" />
+                  <ArrowDown className="h-5 w-5 text-black md:hidden" />
+                </div>
+              </div>
+
+              {/* REPLACED */}
+              <div className="border-2 border-black bg-[#00FF66]/30 p-4 shadow-[4px_4px_0px_0px_#000000]">
+                <div className="mb-2 flex items-center justify-between">
+                  <span className="font-mono text-[10px] font-bold uppercase tracking-widest text-black">
+                    High-Retention
+                  </span>
+                  <span className="border-2 border-black bg-[#00FF66] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-black">
+                    Replaced With
+                  </span>
+                </div>
+                <p className="text-sm font-semibold leading-snug text-black">{r.right}</p>
+              </div>
             </div>
-            <ul className="space-y-2.5">
-              {pack.doctor.optimized.map((line, i) => (
-                <li key={i} className="flex gap-2.5 text-sm leading-snug text-black">
-                  <ArrowRight className="mt-1 h-3.5 w-3.5 shrink-0" />
-                  <span className="font-semibold">{line}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
+          ))}
+        </div>
+
+        {/* ASSEMBLE BUTTON */}
+        <div className="mt-8 flex flex-col items-center">
+          <button
+            onClick={() => setAssembled((v) => !v)}
+            className={`${BTN_PRIMARY} px-8 py-4 text-base`}
+          >
+            <FileText className="h-4 w-4" />
+            {assembled ? "Hide Consolidated Script" : "Generate Final Consolidated Script"}
+          </button>
+
+          {assembled && (
+            <div className="mt-6 w-full border-2 border-black bg-white shadow-[6px_6px_0px_0px_#000000]">
+              <div className="flex items-center justify-between border-b-2 border-black bg-black px-4 py-2.5">
+                <span className="font-mono text-[10px] font-bold uppercase tracking-widest text-white">
+                  final-script.txt · Teleprompter-ready
+                </span>
+                <button
+                  onClick={onCopyScript}
+                  className={BTN_SECONDARY}
+                  style={{ backgroundColor: scriptCopied ? "#00FF66" : "#ffffff" }}
+                >
+                  {scriptCopied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                  {scriptCopied ? "Copied!" : "Copy Script"}
+                </button>
+              </div>
+              <div className="max-h-[420px] overflow-y-auto p-5">
+                <pre className="whitespace-pre-wrap font-mono text-sm leading-relaxed text-black">
+                  {finalScript}
+                </pre>
+              </div>
+            </div>
+          )}
         </div>
       </WindowPane>
 
