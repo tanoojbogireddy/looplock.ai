@@ -12,6 +12,8 @@ import {
   Languages,
   Stethoscope,
   ArrowRight,
+  ArrowDown,
+  FileText,
 } from "lucide-react";
 
 type MatrixRow = { time: string; line: string; lineRoman: string; directive: string };
@@ -109,11 +111,33 @@ const SCRIPT_DOCTOR_EN = {
   optimized: INITIAL_MATRIX_EN.map((r) => r.line),
 };
 
-const LANG_PACK: Record<Lang, { hooks: typeof HOOKS_EN; matrix: MatrixRow[]; doctor: typeof SCRIPT_DOCTOR_EN; fluff: string }> = {
-  Telugu: { hooks: HOOKS_TE, matrix: INITIAL_MATRIX_TE, doctor: SCRIPT_DOCTOR_TE, fluff: 'మొదటి 8 సెకన్లు "welcome back" అని మీ గురించి మాట్లాడుతూ వృథా చేశారు. వీక్షకులు వెంటనే స్వైప్ చేస్తారు.' },
-  English: { hooks: HOOKS_EN, matrix: INITIAL_MATRIX_EN, doctor: SCRIPT_DOCTOR_EN, fluff: 'The first 8 seconds are spent on "welcome back" filler. Viewers swipe before you even reach the hook.' },
-  Hindi: { hooks: HOOKS_EN, matrix: INITIAL_MATRIX_EN, doctor: SCRIPT_DOCTOR_EN, fluff: 'The first 8 seconds are spent on "welcome back" filler. Viewers swipe before you even reach the hook.' },
-  Spanish: { hooks: HOOKS_EN, matrix: INITIAL_MATRIX_EN, doctor: SCRIPT_DOCTOR_EN, fluff: 'The first 8 seconds are spent on "welcome back" filler. Viewers swipe before you even reach the hook.' },
+type Replacement = { wrong: string; right: string };
+
+const REPLACEMENTS_TE: Replacement[] = [
+  { wrong: "హాయ్ గైస్, వెల్‌కమ్ బ్యాక్ టు మై ఛానల్!", right: INITIAL_MATRIX_TE[0].line },
+  { wrong: "ఈరోజు నేను మీకు ఒక చాలా ఇంట్రెస్టింగ్ టాపిక్ గురించి చెప్పబోతున్నాను, అది ఏంటంటే... అమ్...", right: INITIAL_MATRIX_TE[1].line },
+  { wrong: "మీరు రోజూ చాలా టైమ్ ఇమెయిల్స్ చెక్ చేయడంలో పెడుతున్నారు కదా?", right: INITIAL_MATRIX_TE[2].line },
+  { wrong: "అంటే నేను కూడా చాలా స్ట్రగుల్ అయ్యాను దీంతో,", right: INITIAL_MATRIX_TE[3].line },
+  { wrong: "సో నేను ఒక సొల్యూషన్ ఫైండ్ చేశాను,", right: INITIAL_MATRIX_TE[4].line },
+  { wrong: "లెట్ మి షో యూ హౌ ఇట్ వర్క్స్...", right: INITIAL_MATRIX_TE[5].line },
+  { wrong: "మీరు కూడా ట్రై చేసి చూడండి, లింక్ డిస్క్రిప్షన్ లో పెడతాను.", right: INITIAL_MATRIX_TE[6].line },
+];
+
+const REPLACEMENTS_EN: Replacement[] = [
+  { wrong: "Hey guys, welcome back to my channel!", right: INITIAL_MATRIX_EN[0].line },
+  { wrong: "So today I wanted to talk about something really, really interesting, um,", right: INITIAL_MATRIX_EN[1].line },
+  { wrong: "basically you know how we all spend like a crazy amount of time every single day just checking emails over and over again?", right: INITIAL_MATRIX_EN[2].line },
+  { wrong: "Yeah, I struggled with this too for the longest time,", right: INITIAL_MATRIX_EN[3].line },
+  { wrong: "so I went ahead and found a solution,", right: INITIAL_MATRIX_EN[4].line },
+  { wrong: "and let me kind of walk you through how it actually works…", right: INITIAL_MATRIX_EN[5].line },
+  { wrong: "Anyway, hope you guys enjoyed, don't forget to like and subscribe!", right: INITIAL_MATRIX_EN[6].line },
+];
+
+const LANG_PACK: Record<Lang, { hooks: typeof HOOKS_EN; matrix: MatrixRow[]; doctor: typeof SCRIPT_DOCTOR_EN; fluff: string; replacements: Replacement[] }> = {
+  Telugu: { hooks: HOOKS_TE, matrix: INITIAL_MATRIX_TE, doctor: SCRIPT_DOCTOR_TE, fluff: 'మొదటి 8 సెకన్లు "welcome back" అని మీ గురించి మాట్లాడుతూ వృథా చేశారు. వీక్షకులు వెంటనే స్వైప్ చేస్తారు.', replacements: REPLACEMENTS_TE },
+  English: { hooks: HOOKS_EN, matrix: INITIAL_MATRIX_EN, doctor: SCRIPT_DOCTOR_EN, fluff: 'The first 8 seconds are spent on "welcome back" filler. Viewers swipe before you even reach the hook.', replacements: REPLACEMENTS_EN },
+  Hindi: { hooks: HOOKS_EN, matrix: INITIAL_MATRIX_EN, doctor: SCRIPT_DOCTOR_EN, fluff: 'The first 8 seconds are spent on "welcome back" filler. Viewers swipe before you even reach the hook.', replacements: REPLACEMENTS_EN },
+  Spanish: { hooks: HOOKS_EN, matrix: INITIAL_MATRIX_EN, doctor: SCRIPT_DOCTOR_EN, fluff: 'The first 8 seconds are spent on "welcome back" filler. Viewers swipe before you even reach the hook.', replacements: REPLACEMENTS_EN },
 };
 
 // Neo-brutalist primitives
@@ -211,6 +235,8 @@ function ResultView({ lang }: { lang: Lang }) {
   const pack = LANG_PACK[lang];
   const [rows, setRows] = useState<MatrixRow[]>(pack.matrix);
   const [copied, setCopied] = useState(false);
+  const [assembled, setAssembled] = useState(false);
+  const [scriptCopied, setScriptCopied] = useState(false);
 
   const regenerate = (i: number) => {
     setRows((prev) => {
@@ -231,6 +257,18 @@ function ResultView({ lang }: { lang: Lang }) {
     }
     setCopied(true);
     setTimeout(() => setCopied(false), 1600);
+  };
+
+  const finalScript = pack.replacements.map((r) => r.right).join("\n\n");
+
+  const onCopyScript = async () => {
+    try {
+      await navigator.clipboard.writeText(finalScript);
+    } catch {
+      /* ignore */
+    }
+    setScriptCopied(true);
+    setTimeout(() => setScriptCopied(false), 1600);
   };
 
   return (
@@ -324,41 +362,84 @@ function ResultView({ lang }: { lang: Lang }) {
           Aggressive cut-down: conversational fluff stripped into punchy, teleprompter-ready lines.
         </p>
 
-        <div className="grid gap-5 md:grid-cols-2">
-          {/* Original */}
-          <div className="border-2 border-black bg-secondary p-5 shadow-[4px_4px_0px_0px_#000000]">
-            <div className="mb-3 flex items-center justify-between">
-              <span className="font-mono text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                Original Raw Draft
-              </span>
-              <span className="border-2 border-black bg-[#FF5E5E] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-black">
-                Before
-              </span>
-            </div>
-            <p className="text-sm leading-relaxed text-muted-foreground line-through decoration-black/40 decoration-1">
-              {pack.doctor.original}
-            </p>
-          </div>
+        {/* Line-by-line replacement grid */}
+        <div className="space-y-5">
+          {pack.replacements.map((r, i) => (
+            <div
+              key={i}
+              className="grid items-stretch gap-3 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]"
+            >
+              {/* WRONG */}
+              <div className="border-2 border-black bg-[#FF5E5E]/15 p-4 shadow-[4px_4px_0px_0px_#000000]">
+                <div className="mb-2 flex items-center justify-between">
+                  <span className="font-mono text-[10px] font-bold uppercase tracking-widest text-black">
+                    Line {String(i + 1).padStart(2, "0")}
+                  </span>
+                  <span className="border-2 border-black bg-[#FF5E5E] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-black">
+                    Wrong / Fluffy
+                  </span>
+                </div>
+                <p className="text-sm leading-snug text-black/80 line-through decoration-black/50 decoration-1">
+                  {r.wrong}
+                </p>
+              </div>
 
-          {/* Optimized */}
-          <div className="border-2 border-black bg-[#00FF66]/30 p-5 shadow-[4px_4px_0px_0px_#000000]">
-            <div className="mb-3 flex items-center justify-between">
-              <span className="font-mono text-[10px] font-bold uppercase tracking-widest text-black">
-                Optimized · Read on Camera
-              </span>
-              <span className="border-2 border-black bg-[#00FF66] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-black">
-                After
-              </span>
+              {/* Arrow */}
+              <div className="flex items-center justify-center">
+                <div className="flex h-10 w-10 items-center justify-center border-2 border-black bg-[#00E5D1] shadow-[3px_3px_0px_0px_#000000]">
+                  <ArrowRight className="hidden h-5 w-5 text-black md:block" />
+                  <ArrowDown className="h-5 w-5 text-black md:hidden" />
+                </div>
+              </div>
+
+              {/* REPLACED */}
+              <div className="border-2 border-black bg-[#00FF66]/30 p-4 shadow-[4px_4px_0px_0px_#000000]">
+                <div className="mb-2 flex items-center justify-between">
+                  <span className="font-mono text-[10px] font-bold uppercase tracking-widest text-black">
+                    High-Retention
+                  </span>
+                  <span className="border-2 border-black bg-[#00FF66] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-black">
+                    Replaced With
+                  </span>
+                </div>
+                <p className="text-sm font-semibold leading-snug text-black">{r.right}</p>
+              </div>
             </div>
-            <ul className="space-y-2.5">
-              {pack.doctor.optimized.map((line, i) => (
-                <li key={i} className="flex gap-2.5 text-sm leading-snug text-black">
-                  <ArrowRight className="mt-1 h-3.5 w-3.5 shrink-0" />
-                  <span className="font-semibold">{line}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
+          ))}
+        </div>
+
+        {/* ASSEMBLE BUTTON */}
+        <div className="mt-8 flex flex-col items-center">
+          <button
+            onClick={() => setAssembled((v) => !v)}
+            className={`${BTN_PRIMARY} px-8 py-4 text-base`}
+          >
+            <FileText className="h-4 w-4" />
+            {assembled ? "Hide Consolidated Script" : "Generate Final Consolidated Script"}
+          </button>
+
+          {assembled && (
+            <div className="mt-6 w-full border-2 border-black bg-white shadow-[6px_6px_0px_0px_#000000]">
+              <div className="flex items-center justify-between border-b-2 border-black bg-black px-4 py-2.5">
+                <span className="font-mono text-[10px] font-bold uppercase tracking-widest text-white">
+                  final-script.txt · Teleprompter-ready
+                </span>
+                <button
+                  onClick={onCopyScript}
+                  className={BTN_SECONDARY}
+                  style={{ backgroundColor: scriptCopied ? "#00FF66" : "#ffffff" }}
+                >
+                  {scriptCopied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                  {scriptCopied ? "Copied!" : "Copy Script"}
+                </button>
+              </div>
+              <div className="max-h-[420px] overflow-y-auto p-5">
+                <pre className="whitespace-pre-wrap font-mono text-sm leading-relaxed text-black">
+                  {finalScript}
+                </pre>
+              </div>
+            </div>
+          )}
         </div>
       </WindowPane>
 
