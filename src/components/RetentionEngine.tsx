@@ -231,22 +231,26 @@ function Pill({
   );
 }
 
-function ResultView({ lang }: { lang: Lang }) {
-  const pack = LANG_PACK[lang];
-  const [rows, setRows] = useState<MatrixRow[]>(pack.matrix);
+type Analysis = {
+  language: string;
+  platform: string;
+  style: string;
+  dropOffRisk: number;
+  watchTimeLift: string;
+  fillerReduction: string;
+  hookCount: number;
+  cutCount: number;
+  fluffDiagnosis: string;
+  hooks: { label: string; text: string }[];
+  replacements: { wrong: string; right: string }[];
+  matrix: MatrixRow[];
+};
+
+function ResultView({ analysis }: { analysis: Analysis }) {
+  const [rows, setRows] = useState<MatrixRow[]>(analysis.matrix);
   const [copied, setCopied] = useState(false);
   const [assembled, setAssembled] = useState(false);
   const [scriptCopied, setScriptCopied] = useState(false);
-
-  const regenerate = (i: number) => {
-    setRows((prev) => {
-      const next = [...prev];
-      const opts = ALT_DIRECTIVES[next[i].time] ?? [next[i].directive];
-      const pool = opts.filter((o) => o !== next[i].directive);
-      next[i] = { ...next[i], directive: pool[Math.floor(Math.random() * pool.length)] ?? opts[0] };
-      return next;
-    });
-  };
 
   const onCopy = async () => {
     const text = rows.map((r) => `${r.time}\t${r.line}\t${r.directive}`).join("\n");
@@ -259,7 +263,7 @@ function ResultView({ lang }: { lang: Lang }) {
     setTimeout(() => setCopied(false), 1600);
   };
 
-  const finalScript = pack.replacements.map((r) => r.right).join("\n\n");
+  const finalScript = analysis.replacements.map((r) => r.right).join("\n\n");
 
   const onCopyScript = async () => {
     try {
@@ -276,10 +280,10 @@ function ResultView({ lang }: { lang: Lang }) {
       {/* Auto-detected pills */}
       <div className="flex flex-wrap items-center gap-2">
         <Pill bg="#00FF66">
-          <Languages className="h-3 w-3" /> Detected: {lang}
+          <Languages className="h-3 w-3" /> Detected: {analysis.language}
         </Pill>
-        <Pill>Platform: Instagram Reels</Pill>
-        <Pill bg="#FFD93D">Style: High-Energy Viral</Pill>
+        <Pill>Platform: {analysis.platform}</Pill>
+        <Pill bg="#FFD93D">Style: {analysis.style}</Pill>
       </div>
 
       {/* Metrics row */}
@@ -292,11 +296,11 @@ function ResultView({ lang }: { lang: Lang }) {
           <div className="mt-4">
             <span className="inline-flex items-center gap-2 border-2 border-black bg-[#FF5E5E] px-3 py-1.5 text-sm font-extrabold uppercase tracking-wider text-black shadow-[3px_3px_0px_0px_#000000]">
               <Flame className="h-4 w-4" />
-              Drop-off Risk 8/10
+              Drop-off Risk {analysis.dropOffRisk}/10
             </span>
           </div>
           <p className="mt-4 text-sm leading-relaxed text-black">
-            <span className="font-bold">Fluff Diagnosis:</span> {pack.fluff}
+            <span className="font-bold">Fluff Diagnosis:</span> {analysis.fluffDiagnosis}
           </p>
         </div>
 
@@ -307,14 +311,14 @@ function ResultView({ lang }: { lang: Lang }) {
           </div>
           <div className="mt-4">
             <span className="inline-flex items-center gap-2 border-2 border-black bg-[#00FF66] px-3 py-1.5 text-sm font-extrabold uppercase tracking-wider text-black shadow-[3px_3px_0px_0px_#000000]">
-              +312% Watch-Time
+              {analysis.watchTimeLift}
             </span>
           </div>
           <div className="mt-4 grid grid-cols-3 gap-2 text-center">
             {[
-              { k: "Filler", v: "−68%" },
-              { k: "Hooks", v: "3 New" },
-              { k: "Cuts", v: "7" },
+              { k: "Filler", v: analysis.fillerReduction },
+              { k: "Hooks", v: `${analysis.hookCount} New` },
+              { k: "Cuts", v: String(analysis.cutCount) },
             ].map((m) => (
               <div key={m.k} className="border-2 border-black bg-secondary p-2">
                 <div className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">{m.k}</div>
@@ -332,7 +336,7 @@ function ResultView({ lang }: { lang: Lang }) {
           Rewritten Viral Hooks
         </div>
         <div className="mt-4 grid gap-3 md:grid-cols-3">
-          {pack.hooks.map((h, i) => (
+          {analysis.hooks.map((h, i) => (
             <div key={h.label} className="border-2 border-black bg-secondary p-4 shadow-[3px_3px_0px_0px_#000000]">
               <div className="flex items-center justify-between">
                 <span className="font-mono text-[10px] font-bold uppercase tracking-widest text-black">
@@ -364,7 +368,7 @@ function ResultView({ lang }: { lang: Lang }) {
 
         {/* Line-by-line replacement grid */}
         <div className="space-y-5">
-          {pack.replacements.map((r, i) => (
+          {analysis.replacements.map((r, i) => (
             <div
               key={i}
               className="grid items-stretch gap-3 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]"
@@ -475,7 +479,7 @@ function ResultView({ lang }: { lang: Lang }) {
               <tbody>
                 {rows.map((row, idx) => (
                   <tr
-                    key={row.time}
+                    key={`${row.time}-${idx}`}
                     className={`border-t-2 border-black ${idx % 2 === 0 ? "bg-white" : "bg-secondary"}`}
                   >
                     <td className="whitespace-nowrap border-r-2 border-black px-4 py-4 align-top">
@@ -490,16 +494,8 @@ function ResultView({ lang }: { lang: Lang }) {
                       )}
                     </td>
                     <td className="px-4 py-4 align-top text-black">
-                      <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-start gap-3">
                         <span className="flex-1 text-sm">{row.directive}</span>
-                        <button
-                          onClick={() => regenerate(idx)}
-                          aria-label="Regenerate cue"
-                          title="Regenerate cue"
-                          className="group/btn inline-flex h-8 w-8 shrink-0 items-center justify-center border-2 border-black bg-white text-black shadow-[2px_2px_0px_0px_#000000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:bg-[#FFD93D] hover:shadow-[1px_1px_0px_0px_#000000]"
-                        >
-                          <RefreshCw className="h-3.5 w-3.5 transition group-hover/btn:rotate-180" />
-                        </button>
                       </div>
                     </td>
                   </tr>
@@ -516,12 +512,32 @@ function ResultView({ lang }: { lang: Lang }) {
 export function RetentionEngine() {
   const [script, setScript] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "done">("idle");
-  const [detectedLang, setDetectedLang] = useState<Lang>("English");
+  const [analysis, setAnalysis] = useState<Analysis | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  const onAnalyze = () => {
-    setDetectedLang(detectLanguage(script));
+  const onAnalyze = async () => {
+    if (!script.trim()) return;
     setStatus("loading");
-    setTimeout(() => setStatus("done"), 1500);
+    setError(null);
+    try {
+      const res = await fetch("/api/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ script }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({ error: res.statusText }));
+        if (res.status === 429) throw new Error("Rate limit reached — please wait a moment and retry.");
+        if (res.status === 402) throw new Error("AI credits exhausted. Add credits in Settings → Workspace → Usage.");
+        throw new Error(body.error || `Request failed (${res.status})`);
+      }
+      const data = (await res.json()) as Analysis;
+      setAnalysis(data);
+      setStatus("done");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Something went wrong");
+      setStatus("idle");
+    }
   };
 
   return (
@@ -589,9 +605,18 @@ export function RetentionEngine() {
 
           {/* OUTPUT */}
           <section>
-            {status === "idle" && <PlaceholderState />}
+            {status === "idle" && !error && <PlaceholderState />}
+            {status === "idle" && error && (
+              <div className={`${CARD} flex h-full min-h-[480px] flex-col items-center justify-center p-10 text-center`}>
+                <div className="mb-4 flex h-14 w-14 items-center justify-center border-2 border-black bg-[#FF5E5E] shadow-[4px_4px_0px_0px_#000000]">
+                  <AlertTriangle className="h-7 w-7 text-black" />
+                </div>
+                <h3 className="font-serif text-xl font-bold text-black">Analysis failed</h3>
+                <p className="mt-2 max-w-sm text-sm text-muted-foreground">{error}</p>
+              </div>
+            )}
             {status === "loading" && <LoadingState />}
-            {status === "done" && <ResultView lang={detectedLang} />}
+            {status === "done" && analysis && <ResultView analysis={analysis} />}
           </section>
         </div>
       </div>
