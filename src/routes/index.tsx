@@ -51,8 +51,8 @@ function LandingPage() {
           Before You Turn on the Camera.
         </h1>
         <p className="mt-6 max-w-2xl text-lg text-muted-foreground">
-          Retention Engine audits every line of your script before you film — rewriting weak hooks,
-          tightening pacing, and handing you a timestamped shot list your editor can ship.
+          Retention Engine audits every line of your script before you film — rewriting weak hooks, tightening pacing,
+          and handing you a timestamped shot list your editor can ship.
         </p>
         <div className="mt-5">
           <Pill bg="#FFD93D">
@@ -76,17 +76,15 @@ function LandingPage() {
             </div>
             <h3 className="mt-5 font-serif text-2xl font-bold text-black">The Script Doctor</h3>
             <p className="mt-2 text-sm text-muted-foreground">
-              Strips conversational fluff line-by-line. Returns a stronger hook, emotional rewrite,
-              and a CTA that doesn't sound like a YouTuber from 2019.
+              Strips conversational fluff line-by-line. Returns a stronger hook, emotional rewrite, and a CTA that
+              doesn't sound like a YouTuber from 2019.
             </p>
             <ul className="mt-4 space-y-2 text-sm text-black">
-              {["Stronger Hook generation", "Emotional rewrite per line", "CTA rewrite that converts"].map(
-                (t) => (
-                  <li key={t} className="flex items-center gap-2">
-                    <Check className="h-4 w-4 text-black" /> {t}
-                  </li>
-                ),
-              )}
+              {["Stronger Hook generation", "Emotional rewrite per line", "CTA rewrite that converts"].map((t) => (
+                <li key={t} className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-black" /> {t}
+                </li>
+              ))}
             </ul>
           </div>
 
@@ -96,17 +94,15 @@ function LandingPage() {
             </div>
             <h3 className="mt-5 font-serif text-2xl font-bold text-black">The Editing Matrix</h3>
             <p className="mt-2 text-sm text-muted-foreground">
-              A timestamped production recipe — camera angles, b-roll ideas, and pacing cues every
-              3–5 seconds so your editor has zero excuses.
+              A timestamped production recipe — camera angles, b-roll ideas, and pacing cues every 3–5 seconds so your
+              editor has zero excuses.
             </p>
             <ul className="mt-4 space-y-2 text-sm text-black">
-              {["Camera angle suggestions", "B-roll ideas per beat", "Pacing & cut suggestions"].map(
-                (t) => (
-                  <li key={t} className="flex items-center gap-2">
-                    <Check className="h-4 w-4 text-black" /> {t}
-                  </li>
-                ),
-              )}
+              {["Camera angle suggestions", "B-roll ideas per beat", "Pacing & cut suggestions"].map((t) => (
+                <li key={t} className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-black" /> {t}
+                </li>
+              ))}
             </ul>
           </div>
         </div>
@@ -125,9 +121,7 @@ function LandingPage() {
               <Pill bg="#FF5E5E">One Tier · All Access</Pill>
             </div>
             <Pill bg="#FFD93D">Full Terminal Access</Pill>
-            <h3 className="mt-4 font-serif text-2xl font-bold text-black">
-              Unlimited Audits for ₹499/month
-            </h3>
+            <h3 className="mt-4 font-serif text-2xl font-bold text-black">Unlimited Audits for ₹499/month</h3>
             <div className="mt-3 flex items-baseline gap-2">
               <span className="font-serif text-6xl font-bold text-black">₹499</span>
               <span className="font-mono text-sm text-muted-foreground">/month</span>
@@ -158,7 +152,7 @@ function LandingPage() {
           style={{ backgroundColor: "#00E5D1" }}
         >
           <h2 className="font-serif text-4xl font-bold text-black md:text-5xl">
-            Fix the script. Ship the banger.
+            Fix the script before you film. Lock the retention loop.
           </h2>
           <Link to="/app" className={BTN_PRIMARY} style={{ backgroundColor: "#000", color: "#00E5D1" }}>
             <Zap className="h-4 w-4" /> Launch Workspace
