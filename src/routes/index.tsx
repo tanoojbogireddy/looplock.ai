@@ -39,10 +39,7 @@ function LandingPage() {
   return (
     <main className="min-h-screen bg-background text-foreground">
       <section className="mx-auto max-w-7xl px-5 pb-16 pt-14 lg:px-8 lg:pt-20">
-        <Pill bg="#FF5E5E">
-          <AlertTriangle className="h-3 w-3" /> Pre-Production Audit
-        </Pill>
-        <h1 className="mt-5 max-w-4xl font-serif text-5xl font-bold leading-[1.02] tracking-tight text-black md:text-6xl lg:text-7xl">
+        <h1 className="max-w-4xl font-serif text-5xl font-bold leading-[1.02] tracking-tight text-black md:text-6xl lg:text-7xl">
           Stop Filming Boring Videos.{" "}
           <span className="relative inline-block">
             <span className="relative z-10 px-2">Fix Your Script</span>
