@@ -5,11 +5,10 @@ import {
   Scissors,
   AlertTriangle,
   Zap,
-  Copy,
-  Check,
   Stethoscope,
-  FileText,
   Gauge,
+  TrendingDown,
+  TrendingUp,
 } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
@@ -39,8 +38,6 @@ const CARD = "border-2 border-black bg-white shadow-[6px_6px_0px_0px_#000000]";
 const PANE = "border-2 border-black bg-white shadow-[8px_8px_0px_0px_#000000]";
 const BTN_PRIMARY =
   "inline-flex items-center justify-center gap-2 border-2 border-black bg-[#00E5D1] px-5 py-3 text-sm font-extrabold uppercase tracking-wider text-black shadow-[4px_4px_0px_0px_#000000] transition-all hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_#000000] disabled:cursor-not-allowed disabled:opacity-70";
-const BTN_SECONDARY =
-  "inline-flex items-center justify-center gap-2 border-2 border-black bg-white px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-black shadow-[3px_3px_0px_0px_#000000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0px_0px_#000000]";
 
 function Pill({ children, bg = "#FFFFFF" }: { children: React.ReactNode; bg?: string }) {
   return (
@@ -61,187 +58,218 @@ function trackUsage() {
   localStorage.setItem(key, String(cur + 1));
 }
 
-function RetentionRing({ score }: { score: number }) {
-  const size = 160;
-  const stroke = 14;
-  const r = (size - stroke) / 2;
-  const c = 2 * Math.PI * r;
-  const offset = c - (Math.max(0, Math.min(100, score)) / 100) * c;
+function RetentionCurve({
+  variant,
+  color,
+}: {
+  variant: "trap" | "loop";
+  color: string;
+}) {
+  // Width 320, Height 140, y axis = retention %
+  const W = 320;
+  const H = 140;
+  const pad = { l: 28, r: 8, t: 10, b: 22 };
+  const y = (pct: number) => pad.t + (1 - pct / 100) * (H - pad.t - pad.b);
+  const x = (t: number) => pad.l + (t / 30) * (W - pad.l - pad.r); // 30s timeline
+
+  const trapPts = [
+    [0, 100], [2, 92], [4, 45], [8, 32], [14, 24], [20, 18], [30, 12],
+  ] as const;
+  const loopPts = [
+    [0, 100], [3, 95], [6, 90], [10, 89], [15, 88], [22, 88], [30, 87],
+  ] as const;
+  const pts = variant === "trap" ? trapPts : loopPts;
+  const path = pts.map(([t, p], i) => `${i === 0 ? "M" : "L"} ${x(t)} ${y(p)}`).join(" ");
+  const area = `${path} L ${x(30)} ${y(0)} L ${x(0)} ${y(0)} Z`;
+
+  const yTicks = [0, 25, 50, 75, 100];
+  const xTicks = [0, 5, 10, 15, 20, 25, 30];
+
   return (
-    <div className="relative" style={{ width: size, height: size }}>
-      <svg width={size} height={size} className="-rotate-90">
-        <circle cx={size / 2} cy={size / 2} r={r} stroke="#000" strokeWidth={stroke} fill="none" opacity={0.12} />
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={r}
-          stroke="#00E5D1"
-          strokeWidth={stroke}
-          fill="none"
-          strokeDasharray={c}
-          strokeDashoffset={offset}
-          strokeLinecap="butt"
-        />
-      </svg>
-      <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="font-serif text-4xl font-bold text-black">{score}%</span>
-        <span className="font-mono text-[10px] font-bold uppercase tracking-widest text-black/70">Retention</span>
+    <svg viewBox={`0 0 ${W} ${H}`} className="w-full border-2 border-black bg-white">
+      {/* grid */}
+      {yTicks.map((t) => (
+        <line key={`y${t}`} x1={pad.l} x2={W - pad.r} y1={y(t)} y2={y(t)} stroke="#000" strokeOpacity={0.12} />
+      ))}
+      {yTicks.map((t) => (
+        <text key={`yt${t}`} x={4} y={y(t) + 3} fontSize={8} fontFamily="monospace" fill="#000">
+          {t}
+        </text>
+      ))}
+      {xTicks.map((t) => (
+        <text key={`xt${t}`} x={x(t) - 4} y={H - 6} fontSize={8} fontFamily="monospace" fill="#000">
+          {t}s
+        </text>
+      ))}
+      {/* axes */}
+      <line x1={pad.l} x2={pad.l} y1={pad.t} y2={H - pad.b} stroke="#000" strokeWidth={1.5} />
+      <line x1={pad.l} x2={W - pad.r} y1={H - pad.b} y2={H - pad.b} stroke="#000" strokeWidth={1.5} />
+      {/* area + line */}
+      <path d={area} fill={color} fillOpacity={0.25} />
+      <path d={path} stroke="#000" strokeWidth={2.5} fill="none" />
+      {/* marker at the inflection */}
+      {variant === "trap" && (
+        <>
+          <circle cx={x(4)} cy={y(45)} r={5} fill="#FF5E5E" stroke="#000" strokeWidth={2} />
+          <text x={x(4) + 8} y={y(45) - 6} fontSize={9} fontFamily="monospace" fontWeight={700} fill="#000">
+            0:04 — 45%
+          </text>
+        </>
+      )}
+      {variant === "loop" && (
+        <>
+          <circle cx={x(15)} cy={y(88)} r={5} fill="#00FF66" stroke="#000" strokeWidth={2} />
+          <text x={x(15) + 8} y={y(88) - 6} fontSize={9} fontFamily="monospace" fontWeight={700} fill="#000">
+            STABLE — 88%
+          </text>
+        </>
+      )}
+    </svg>
+  );
+}
+
+function AnalysisTab() {
+  return (
+    <div className="space-y-5">
+      <div className="grid gap-5 lg:grid-cols-2">
+        {/* LEFT — Original Trap */}
+        <div className={`${CARD} p-5`} style={{ backgroundColor: "#FFE5E5" }}>
+          <div className="flex items-center gap-2">
+            <TrendingDown className="h-4 w-4 text-black" />
+            <Pill bg="#FF5E5E">Original Script Path</Pill>
+          </div>
+          <h4 className="mt-3 font-serif text-lg font-bold text-black">The 200-View Trap</h4>
+          <div className="mt-3">
+            <RetentionCurve variant="trap" color="#FF5E5E" />
+          </div>
+          <div className="mt-4 border-2 border-black bg-white p-3 shadow-[3px_3px_0px_0px_#000000]">
+            <div className="flex items-center gap-2 font-mono text-[10px] font-bold uppercase tracking-widest text-black">
+              <AlertTriangle className="h-3.5 w-3.5" /> Diagnostic Breakdown
+            </div>
+            <p className="mt-2 text-sm font-semibold leading-snug text-black">
+              <span className="bg-[#FF5E5E] px-1 font-bold">CRITICAL DROPOUT AT 0:04</span> — Reason: Dead intro hook
+              combined with high filler-word density. Viewer cognitive load spiked, triggering a bounce.
+            </p>
+          </div>
+        </div>
+
+        {/* RIGHT — LoopLock */}
+        <div className={`${CARD} p-5`} style={{ backgroundColor: "#E5FFE9" }}>
+          <div className="flex items-center gap-2">
+            <TrendingUp className="h-4 w-4 text-black" />
+            <Pill bg="#00FF66">LoopLock Optimized Path</Pill>
+          </div>
+          <h4 className="mt-3 font-serif text-lg font-bold text-black">The Retention Loop</h4>
+          <div className="mt-3">
+            <RetentionCurve variant="loop" color="#00FF66" />
+          </div>
+          <div className="mt-4 border-2 border-black bg-white p-3 shadow-[3px_3px_0px_0px_#000000]">
+            <div className="flex items-center gap-2 font-mono text-[10px] font-bold uppercase tracking-widest text-black">
+              <TrendingUp className="h-3.5 w-3.5" /> Analytical Readout
+            </div>
+            <p className="mt-2 text-sm font-semibold leading-snug text-black">
+              <span className="bg-[#00FF66] px-1 font-bold">PREDICTED TRAFFIC LEVEL: STABLE</span> — Reason: Dynamic
+              attention hook successfully locked the initial 3-second cliff, while rhythmic pacing cuts drop cognitive
+              fatigue to near-zero.
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   );
 }
 
-function MetricsTab({ a }: { a: Analysis }) {
+const DOCTOR_SWAPS = [
+  {
+    bad: "Hey guys, welcome back to my channel. In today's video, I basically wanted to talk about...",
+    good: "◤ Stop filming boring videos. Fix the script before you film.",
+  },
+  {
+    bad: "...honestly, it just comes down to consistency. So yeah, definitely make sure you hit that follow button...",
+    good: "◤ Top agencies run text through attention-decay models. If you want to break the trap, click the link.",
+  },
+];
+
+function DoctorTab() {
   return (
-    <div className="space-y-6">
-      <div className={`${CARD} flex flex-col items-center gap-5 p-6 md:flex-row md:gap-7`}>
-        <RetentionRing score={a.retention_score} />
-        <div className="flex-1 space-y-3">
-          <div className="flex flex-wrap items-center gap-2">
-            <Pill bg="#FFD93D">Weibull k = {a.weibull_shape_k ?? 0.7}</Pill>
-            <Pill>λ = {a.hook_strength_lambda}</Pill>
-            <Pill bg="#00FF66">Pacing {a.pacing_frequency}</Pill>
-          </div>
-          <p className="font-mono text-xs leading-relaxed text-black">
-            <span className="font-bold uppercase tracking-widest">Formula:</span>{" "}
-            <span className="border-2 border-black bg-secondary px-2 py-0.5">{a.weibull_formula_display}</span>
-          </p>
-          <div className="grid grid-cols-2 gap-3 pt-1">
-            <div className="border-2 border-black bg-white p-3 shadow-[3px_3px_0px_0px_#000000]">
-              <div className="font-mono text-[10px] font-bold uppercase tracking-widest text-black/70">Scale (λ)</div>
-              <div className="mt-1 font-serif text-2xl font-bold text-black">{a.hook_strength_lambda}</div>
-            </div>
-            <div className="border-2 border-black bg-white p-3 shadow-[3px_3px_0px_0px_#000000]">
-              <div className="font-mono text-[10px] font-bold uppercase tracking-widest text-black/70">Pacing Frequency</div>
-              <div className="mt-1 font-serif text-2xl font-bold text-black">{a.pacing_frequency}</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className={`${CARD} p-5`}>
-        <div className="flex items-center justify-between font-mono text-xs text-black">
-          <span className="font-bold uppercase tracking-widest">Scale (λ)</span>
-          <span className="font-bold">{a.hook_strength_lambda} / 100</span>
-        </div>
-        <div className="mt-2 h-5 w-full border-2 border-black bg-white">
-          <div className="h-full border-r-2 border-black bg-[#00E5D1] transition-all" style={{ width: `${a.hook_strength_lambda}%` }} />
-        </div>
-      </div>
-
-      <div className={`${CARD} p-5`} style={{ backgroundColor: "#FFE5E5" }}>
-        <div className="flex items-center gap-2 font-mono text-[10px] font-bold uppercase tracking-widest text-black">
-          <AlertTriangle className="h-3.5 w-3.5" /> Critical Weibull Alert
-        </div>
-        <div className="mt-3">
-          <span className="inline-flex items-center gap-2 border-2 border-black bg-[#FF5E5E] px-3 py-2 text-sm font-extrabold uppercase tracking-wider text-black shadow-[3px_3px_0px_0px_#000000]">
-            <AlertTriangle className="h-4 w-4" />
-            Critical Weibull Drop Risk Detected at Line {a.drop_risk_line} (Pacing Violation)
-          </span>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function DoctorTab({ a }: { a: Analysis }) {
-  const [copied, setCopied] = useState(false);
-  const finalScript = [
-    `HOOK: ${a.script_doctor.stronger_hook}`,
-    `BODY: ${a.script_doctor.emotional_rewrite}`,
-    `CTA:  ${a.script_doctor.cta_rewrite}`,
-  ].join("\n\n");
-
-  const onCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(finalScript);
-    } catch {}
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
-  };
-
-  const boxes = [
-    { label: "Stronger Hook", color: "#FFD93D", text: a.script_doctor.stronger_hook },
-    { label: "Emotional Rewrite", color: "#FF5E5E", text: a.script_doctor.emotional_rewrite },
-    { label: "CTA Rewrite", color: "#00FF66", text: a.script_doctor.cta_rewrite },
-  ];
-
-  return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <div className="flex items-center gap-2">
         <Stethoscope className="h-5 w-5 text-black" />
-        <h3 className="font-serif text-xl font-bold text-black">Script Doctor Rewrites</h3>
+        <h3 className="font-serif text-xl font-bold text-black">Linguistic Swaps</h3>
       </div>
-      <div className="grid gap-4 md:grid-cols-3">
-        {boxes.map((b) => (
-          <div key={b.label} className={`${CARD} p-5`}>
-            <span
-              className="inline-block border-2 border-black px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-black"
-              style={{ backgroundColor: b.color }}
-            >
-              {b.label}
-            </span>
-            <p className="mt-3 text-sm font-semibold leading-snug text-black">"{b.text}"</p>
+      <div className="overflow-hidden border-2 border-black shadow-[6px_6px_0px_0px_#000000]">
+        <div className="grid grid-cols-2 border-b-2 border-black bg-black text-xs uppercase tracking-widest text-white">
+          <div className="border-r-2 border-white/20 px-4 py-3 font-mono font-bold">Flagged Weakness</div>
+          <div className="px-4 py-3 font-mono font-bold">➔ Retaining Remedy</div>
+        </div>
+        {DOCTOR_SWAPS.map((row, idx) => (
+          <div key={idx} className="grid grid-cols-2 border-t-2 border-black first:border-t-0">
+            <div className="border-r-2 border-black bg-[#FFE5E5] p-4">
+              <span className="inline-block border-2 border-black bg-[#FF5E5E] px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-widest text-black">
+                Weak
+              </span>
+              <p className="mt-2 text-sm leading-snug text-black line-through decoration-[#FF5E5E] decoration-2">
+                {row.bad}
+              </p>
+            </div>
+            <div className="bg-[#E5FFE9] p-4">
+              <span className="inline-block border-2 border-black bg-[#00FF66] px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-widest text-black">
+                Loop-Locked
+              </span>
+              <p className="mt-2 text-sm font-bold leading-snug text-black">{row.good}</p>
+            </div>
           </div>
         ))}
       </div>
-
-      <div className="border-2 border-black bg-white shadow-[6px_6px_0px_0px_#000000]">
-        <div className="flex items-center justify-between border-b-2 border-black bg-black px-4 py-2.5">
-          <span className="font-mono text-[10px] font-bold uppercase tracking-widest text-white">final-script.txt</span>
-          <button onClick={onCopy} className={BTN_SECONDARY} style={{ backgroundColor: copied ? "#00FF66" : "#fff" }}>
-            {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-            {copied ? "Copied!" : "Copy"}
-          </button>
-        </div>
-        <div className="max-h-[420px] overflow-y-auto p-5">
-          <pre className="whitespace-pre-wrap font-mono text-sm leading-relaxed text-black">{finalScript}</pre>
-        </div>
-      </div>
-      <div className="flex items-center justify-center pt-1">
-        <span className="inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
-          <FileText className="h-3 w-3" /> Teleprompter-ready
-        </span>
-      </div>
     </div>
   );
 }
 
-function MatrixTab({ a }: { a: Analysis }) {
+const MATRIX_ROWS = [
+  {
+    line: "Stop filming boring videos. Fix the script before you film.",
+    framing: "Close-up punch-in",
+    cues: "Word-by-word kinetic text popups + crisp whoosh audio effect.",
+  },
+  {
+    line: "You waste three hours editing un-paced footage...",
+    framing: "Medium profile cut",
+    cues: "B-roll of a frustrated editor scrolling a video timeline + subtle audio glitch transition.",
+  },
+];
+
+function MatrixTab() {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2">
         <Scissors className="h-5 w-5 text-black" />
-        <h3 className="font-serif text-xl font-bold text-black">Timestamped Production Matrix</h3>
+        <h3 className="font-serif text-xl font-bold text-black">Production Blueprint</h3>
       </div>
       <p className="text-sm text-muted-foreground">
-        Camera angles, B-roll, and pacing cues tuned to the Weibull retention curve.
+        Line-by-line shooting guide built from the loop-locked script.
       </p>
-      <div className="overflow-hidden border-2 border-black">
+      <div className="overflow-hidden border-2 border-black shadow-[6px_6px_0px_0px_#000000]">
         <div className="overflow-x-auto">
           <table className="w-full border-collapse text-left text-sm">
             <thead className="bg-black text-xs uppercase tracking-widest text-white">
               <tr>
-                <th className="w-20 border-r-2 border-white/20 px-4 py-3 font-mono font-bold">Time</th>
-                <th className="border-r-2 border-white/20 px-4 py-3 font-mono font-bold">Camera Angle</th>
-                <th className="border-r-2 border-white/20 px-4 py-3 font-mono font-bold">B-Roll Idea</th>
-                <th className="px-4 py-3 font-mono font-bold">Pacing Suggestion</th>
+                <th className="border-r-2 border-white/20 px-4 py-3 font-mono font-bold">Corrected Script Line</th>
+                <th className="w-44 border-r-2 border-white/20 px-4 py-3 font-mono font-bold">Camera Framing</th>
+                <th className="px-4 py-3 font-mono font-bold">B-Roll & Sound FX</th>
               </tr>
             </thead>
             <tbody>
-              {a.editing_matrix.map((row, idx) => (
-                <tr
-                  key={`${row.timestamp}-${idx}`}
-                  className={`border-t-2 border-black ${idx % 2 === 0 ? "bg-white" : "bg-secondary"}`}
-                >
-                  <td className="whitespace-nowrap border-r-2 border-black px-4 py-4 align-top">
-                    <span className="inline-block border-2 border-black bg-[#FFD93D] px-2 py-0.5 font-mono text-xs font-bold text-black">
-                      {row.timestamp}
+              {MATRIX_ROWS.map((row, idx) => (
+                <tr key={idx} className={`border-t-2 border-black ${idx % 2 === 0 ? "bg-white" : "bg-secondary"}`}>
+                  <td className="border-r-2 border-black px-4 py-4 align-top">
+                    <p className="text-sm font-bold leading-snug text-black">"{row.line}"</p>
+                  </td>
+                  <td className="border-r-2 border-black px-4 py-4 align-top">
+                    <span className="inline-block border-2 border-black bg-[#FFD93D] px-2 py-1 font-mono text-xs font-bold text-black">
+                      {row.framing}
                     </span>
                   </td>
-                  <td className="border-r-2 border-black px-4 py-4 align-top font-medium text-black">{row.angle}</td>
-                  <td className="border-r-2 border-black px-4 py-4 align-top text-black">{row.b_roll}</td>
-                  <td className="px-4 py-4 align-top text-black">{row.pacing}</td>
+                  <td className="px-4 py-4 align-top text-sm text-black">{row.cues}</td>
                 </tr>
               ))}
             </tbody>
@@ -314,11 +342,11 @@ export function Workspace() {
       <div className="mx-auto max-w-7xl px-5 py-10 lg:px-8 lg:py-12">
         <div className="mb-8">
           <Pill bg="#00FF66">
-            <span className="h-1.5 w-1.5 bg-black" /> Workspace Terminal · Weibull Engine
+            <span className="h-1.5 w-1.5 bg-black" /> ◤ LoopLock Workspace
           </Pill>
           <h1 className="mt-4 font-serif text-4xl font-bold text-black md:text-5xl">Paste a script. Ship a banger.</h1>
           <p className="mt-2 font-mono text-xs uppercase tracking-widest text-muted-foreground">
-            R(t) = e^(-(t / λ)^0.7) · early drop-off cliff locked
+            Pre-production retention audit · loop-lock your script before the camera rolls
           </p>
         </div>
 
@@ -338,7 +366,7 @@ export function Workspace() {
                 className={`${BTN_PRIMARY} mt-4 w-full py-3.5 text-base`}
               >
                 {status === "loading" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                Run Weibull Audit
+                Run Retention Audit
               </button>
             </WindowPane>
           </section>
@@ -352,7 +380,7 @@ export function Workspace() {
                   </div>
                   <h3 className="mt-5 font-serif text-xl font-bold text-black">Your blueprint will appear here</h3>
                   <p className="mt-1 max-w-sm text-sm text-muted-foreground">
-                    Paste a raw script and run the Weibull audit — Metrics, Doctor, and Matrix on the right.
+                    Paste a raw script and run the audit — Analysis, Script Doctor, and Editing Matrix on the right.
                   </p>
                 </div>
               )}
@@ -371,15 +399,15 @@ export function Workspace() {
                     <Loader2 className="h-10 w-10 animate-spin text-black" />
                   </div>
                   <p className="mt-5 font-mono text-sm font-bold uppercase tracking-wider text-black">
-                    Computing Weibull curve…
+                    Auditing retention curve…
                   </p>
                 </div>
               )}
               {status === "done" && analysis && (
-                <Tabs defaultValue="metrics" className="w-full">
+                <Tabs defaultValue="analysis" className="w-full">
                   <TabsList className="mb-4 grid w-full grid-cols-3 gap-0 border-2 border-black bg-white p-0 shadow-[3px_3px_0px_0px_#000000] h-auto rounded-none">
                     {[
-                      { v: "metrics", l: "Metrics", icon: Gauge },
+                      { v: "analysis", l: "Analysis", icon: Gauge },
                       { v: "doctor", l: "Script Doctor", icon: Stethoscope },
                       { v: "matrix", l: "Editing Matrix", icon: Scissors },
                     ].map((t) => (
@@ -393,14 +421,14 @@ export function Workspace() {
                       </TabsTrigger>
                     ))}
                   </TabsList>
-                  <TabsContent value="metrics">
-                    <MetricsTab a={analysis} />
+                  <TabsContent value="analysis">
+                    <AnalysisTab />
                   </TabsContent>
                   <TabsContent value="doctor">
-                    <DoctorTab a={analysis} />
+                    <DoctorTab />
                   </TabsContent>
                   <TabsContent value="matrix">
-                    <MatrixTab a={analysis} />
+                    <MatrixTab />
                   </TabsContent>
                 </Tabs>
               )}
@@ -411,7 +439,7 @@ export function Workspace() {
         <div className="mt-6 flex items-center gap-2">
           <Zap className="h-4 w-4 text-black" />
           <span className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
-            Retention Engine · Weibull Workspace v1.0 · k=0.7
+            ◤ LOOPLOCK WORKSPACE V1.0
           </span>
         </div>
       </div>
