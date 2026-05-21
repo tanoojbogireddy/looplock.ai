@@ -51,12 +51,12 @@ function LandingPage() {
           Before You Turn on the Camera.
         </h1>
         <p className="mt-6 max-w-2xl text-lg text-muted-foreground">
-          Retention Engine audits your script with a Weibull-based retention model (k = 0.7) — the
-          same statistical curve that governs how viewers actually drop off short-form video.
+          Retention Engine audits every line of your script before you film — rewriting weak hooks,
+          tightening pacing, and handing you a timestamped shot list your editor can ship.
         </p>
         <div className="mt-5">
           <Pill bg="#FFD93D">
-            <Zap className="h-3 w-3" /> Powered by Weibull-Based Retention Modeling
+            <Zap className="h-3 w-3" /> Pre-Production Script Intelligence
           </Pill>
         </div>
         <div className="mt-8 flex flex-wrap items-center gap-3">
@@ -134,10 +134,10 @@ function LandingPage() {
             </div>
             <ul className="mt-6 space-y-2 text-sm text-black">
               {[
-                "Unlimited Weibull script audits",
+                "Unlimited script audits",
                 "Script Doctor: hook, emotional & CTA rewrites",
                 "Timestamped Editing Matrix (camera, B-roll, pacing)",
-                "Locked k = 0.7 short-form retention model",
+                "Tuned for short-form drop-off patterns",
                 "Priority support",
               ].map((t) => (
                 <li key={t} className="flex items-center gap-2">
@@ -158,7 +158,7 @@ function LandingPage() {
           style={{ backgroundColor: "#00E5D1" }}
         >
           <h2 className="font-serif text-4xl font-bold text-black md:text-5xl">
-            Ready to break the 200-view ceiling?
+            Fix the script. Ship the banger.
           </h2>
           <Link to="/app" className={BTN_PRIMARY} style={{ backgroundColor: "#000", color: "#00E5D1" }}>
             <Zap className="h-4 w-4" /> Launch Workspace
