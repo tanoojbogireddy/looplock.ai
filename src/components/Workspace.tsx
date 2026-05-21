@@ -183,16 +183,21 @@ function AnalysisTab({
             {score}/10
           </span>
         </div>
+        {a.score_justification && (
+          <p className="mt-3 max-w-xl font-mono text-[11px] font-bold uppercase tracking-wider text-black/80">
+            {a.score_justification}
+          </p>
+        )}
         <p className="mt-4 max-w-xl font-serif text-base font-semibold leading-snug text-black md:text-lg">
           {a.plain_summary}
         </p>
       </div>
 
       {/* Two charts side by side */}
-      <div className="grid gap-5 md:grid-cols-2">
-        <div className={`${CARD} p-4`} style={{ backgroundColor: "#FFE5E5" }}>
+      <div className="grid gap-5 sm:grid-cols-2">
+        <div className={`${CARD} min-w-0 p-3 sm:p-4`} style={{ backgroundColor: "#FFE5E5" }}>
           <h4 className="font-serif text-base font-bold text-black">When people stop watching</h4>
-          <div className="mt-3">
+          <div className="mt-3 w-full overflow-hidden">
             <RetentionCurve
               data={a.original_chart_data}
               color="#FF5E5E"
@@ -201,9 +206,9 @@ function AnalysisTab({
             />
           </div>
         </div>
-        <div className={`${CARD} p-4`} style={{ backgroundColor: "#E5FFE9" }}>
+        <div className={`${CARD} min-w-0 p-3 sm:p-4`} style={{ backgroundColor: "#E5FFE9" }}>
           <h4 className="font-serif text-base font-bold text-black">After the fix</h4>
-          <div className="mt-3">
+          <div className="mt-3 w-full overflow-hidden">
             <RetentionCurve data={a.optimized_chart_data} color="#00FF66" />
           </div>
         </div>
