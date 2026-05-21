@@ -10,7 +10,6 @@ import {
   Stethoscope,
   FileText,
   Gauge,
-  Activity,
 } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
