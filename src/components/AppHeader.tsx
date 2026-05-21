@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { Zap, LogOut } from "lucide-react";
+import { LogOut } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -28,11 +28,8 @@ export function AppHeader() {
     <header className="sticky top-0 z-40 border-b-2 border-black bg-[#FFD93D]">
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-3 lg:px-8">
         <Link to="/" className="flex items-center gap-2.5">
-          <div className="flex h-9 w-9 items-center justify-center border-2 border-black bg-[#00E5D1] shadow-[3px_3px_0px_0px_#000000]">
-            <Zap className="h-4 w-4 text-black" />
-          </div>
           <span className="font-mono text-sm font-bold uppercase tracking-widest text-black">
-            Retention Engine
+            ◤ LOOPLOCK
           </span>
         </Link>
         <nav className="flex items-center gap-2">
