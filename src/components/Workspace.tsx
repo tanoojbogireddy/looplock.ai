@@ -12,26 +12,16 @@ import {
 } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
-type MatrixRow = {
-  timestamp: string;
-  angle: string;
-  b_roll: string;
-  pacing: string;
-};
-
 type Analysis = {
-  retention_score: number;
-  hook_strength_lambda: number;
-  pacing_frequency: number;
-  drop_risk_line: number;
-  weibull_formula_display: string;
-  weibull_shape_k?: number;
-  script_doctor: {
-    stronger_hook: string;
-    emotional_rewrite: string;
-    cta_rewrite: string;
+  analysis: {
+    original_drop_second: number;
+    original_drop_reason: string;
+    original_chart_data: number[];
+    optimized_chart_data: number[];
+    optimized_summary: string;
   };
-  editing_matrix: MatrixRow[];
+  script_doctor: { flagged_weakness: string; retaining_remedy: string }[];
+  editing_matrix: { corrected_line: string; camera_framing: string; b_roll_sound_fx: string }[];
 };
 
 const CARD = "border-2 border-black bg-white shadow-[6px_6px_0px_0px_#000000]";
@@ -59,35 +49,47 @@ function trackUsage() {
 }
 
 function RetentionCurve({
-  variant,
+  data,
   color,
+  markerSecond,
+  markerLabel,
 }: {
-  variant: "trap" | "loop";
+  data: number[];
   color: string;
+  markerSecond?: number;
+  markerLabel?: string;
 }) {
-  // Width 320, Height 140, y axis = retention %
   const W = 320;
   const H = 140;
   const pad = { l: 28, r: 8, t: 10, b: 22 };
-  const y = (pct: number) => pad.t + (1 - pct / 100) * (H - pad.t - pad.b);
-  const x = (t: number) => pad.l + (t / 30) * (W - pad.l - pad.r); // 30s timeline
+  const y = (pct: number) => pad.t + (1 - Math.max(0, Math.min(100, pct)) / 100) * (H - pad.t - pad.b);
+  const x = (t: number) => pad.l + (t / 30) * (W - pad.l - pad.r);
 
-  const trapPts = [
-    [0, 100], [2, 92], [4, 45], [8, 32], [14, 24], [20, 18], [30, 12],
-  ] as const;
-  const loopPts = [
-    [0, 100], [3, 95], [6, 90], [10, 89], [15, 88], [22, 88], [30, 87],
-  ] as const;
-  const pts = variant === "trap" ? trapPts : loopPts;
-  const path = pts.map(([t, p], i) => `${i === 0 ? "M" : "L"} ${x(t)} ${y(p)}`).join(" ");
+  // map 11 samples to 0..30s
+  const safe = (data && data.length >= 2 ? data : [100, 0]).slice(0, 11);
+  const step = 30 / (safe.length - 1);
+  const path = safe
+    .map((p, i) => `${i === 0 ? "M" : "L"} ${x(i * step)} ${y(p)}`)
+    .join(" ");
   const area = `${path} L ${x(30)} ${y(0)} L ${x(0)} ${y(0)} Z`;
 
   const yTicks = [0, 25, 50, 75, 100];
   const xTicks = [0, 5, 10, 15, 20, 25, 30];
 
+  // interpolate marker y
+  let markerY: number | null = null;
+  let markerPct: number | null = null;
+  if (typeof markerSecond === "number" && markerSecond >= 0 && markerSecond <= 30) {
+    const idxF = markerSecond / step;
+    const i0 = Math.floor(idxF);
+    const i1 = Math.min(safe.length - 1, i0 + 1);
+    const frac = idxF - i0;
+    markerPct = safe[i0] + (safe[i1] - safe[i0]) * frac;
+    markerY = y(markerPct);
+  }
+
   return (
     <svg viewBox={`0 0 ${W} ${H}`} className="w-full border-2 border-black bg-white">
-      {/* grid */}
       {yTicks.map((t) => (
         <line key={`y${t}`} x1={pad.l} x2={W - pad.r} y1={y(t)} y2={y(t)} stroke="#000" strokeOpacity={0.12} />
       ))}
@@ -101,38 +103,35 @@ function RetentionCurve({
           {t}s
         </text>
       ))}
-      {/* axes */}
       <line x1={pad.l} x2={pad.l} y1={pad.t} y2={H - pad.b} stroke="#000" strokeWidth={1.5} />
       <line x1={pad.l} x2={W - pad.r} y1={H - pad.b} y2={H - pad.b} stroke="#000" strokeWidth={1.5} />
-      {/* area + line */}
       <path d={area} fill={color} fillOpacity={0.25} />
       <path d={path} stroke="#000" strokeWidth={2.5} fill="none" />
-      {/* marker at the inflection */}
-      {variant === "trap" && (
+      {markerY !== null && markerPct !== null && typeof markerSecond === "number" && (
         <>
-          <circle cx={x(4)} cy={y(45)} r={5} fill="#FF5E5E" stroke="#000" strokeWidth={2} />
-          <text x={x(4) + 8} y={y(45) - 6} fontSize={9} fontFamily="monospace" fontWeight={700} fill="#000">
-            0:04 — 45%
-          </text>
-        </>
-      )}
-      {variant === "loop" && (
-        <>
-          <circle cx={x(15)} cy={y(88)} r={5} fill="#00FF66" stroke="#000" strokeWidth={2} />
-          <text x={x(15) + 8} y={y(88) - 6} fontSize={9} fontFamily="monospace" fontWeight={700} fill="#000">
-            STABLE — 88%
-          </text>
+          <circle cx={x(markerSecond)} cy={markerY} r={5} fill={color} stroke="#000" strokeWidth={2} />
+          {markerLabel && (
+            <text
+              x={Math.min(W - 80, x(markerSecond) + 8)}
+              y={Math.max(14, markerY - 6)}
+              fontSize={9}
+              fontFamily="monospace"
+              fontWeight={700}
+              fill="#000"
+            >
+              {markerLabel}
+            </text>
+          )}
         </>
       )}
     </svg>
   );
 }
 
-function AnalysisTab() {
+function AnalysisTab({ a }: { a: Analysis["analysis"] }) {
   return (
     <div className="space-y-5">
       <div className="grid gap-5 lg:grid-cols-2">
-        {/* LEFT — Original Trap */}
         <div className={`${CARD} p-5`} style={{ backgroundColor: "#FFE5E5" }}>
           <div className="flex items-center gap-2">
             <TrendingDown className="h-4 w-4 text-black" />
@@ -140,20 +139,26 @@ function AnalysisTab() {
           </div>
           <h4 className="mt-3 font-serif text-lg font-bold text-black">The 200-View Trap</h4>
           <div className="mt-3">
-            <RetentionCurve variant="trap" color="#FF5E5E" />
+            <RetentionCurve
+              data={a.original_chart_data}
+              color="#FF5E5E"
+              markerSecond={a.original_drop_second}
+              markerLabel={`0:${String(Math.round(a.original_drop_second)).padStart(2, "0")} — DROP`}
+            />
           </div>
           <div className="mt-4 border-2 border-black bg-white p-3 shadow-[3px_3px_0px_0px_#000000]">
             <div className="flex items-center gap-2 font-mono text-[10px] font-bold uppercase tracking-widest text-black">
               <AlertTriangle className="h-3.5 w-3.5" /> Diagnostic Breakdown
             </div>
             <p className="mt-2 text-sm font-semibold leading-snug text-black">
-              <span className="bg-[#FF5E5E] px-1 font-bold">CRITICAL DROPOUT AT 0:04</span> — Reason: Dead intro hook
-              combined with high filler-word density. Viewer cognitive load spiked, triggering a bounce.
+              <span className="bg-[#FF5E5E] px-1 font-bold">
+                CRITICAL DROPOUT AT 0:{String(Math.round(a.original_drop_second)).padStart(2, "0")}
+              </span>{" "}
+              — {a.original_drop_reason}
             </p>
           </div>
         </div>
 
-        {/* RIGHT — LoopLock */}
         <div className={`${CARD} p-5`} style={{ backgroundColor: "#E5FFE9" }}>
           <div className="flex items-center gap-2">
             <TrendingUp className="h-4 w-4 text-black" />
@@ -161,16 +166,14 @@ function AnalysisTab() {
           </div>
           <h4 className="mt-3 font-serif text-lg font-bold text-black">The Retention Loop</h4>
           <div className="mt-3">
-            <RetentionCurve variant="loop" color="#00FF66" />
+            <RetentionCurve data={a.optimized_chart_data} color="#00FF66" />
           </div>
           <div className="mt-4 border-2 border-black bg-white p-3 shadow-[3px_3px_0px_0px_#000000]">
             <div className="flex items-center gap-2 font-mono text-[10px] font-bold uppercase tracking-widest text-black">
               <TrendingUp className="h-3.5 w-3.5" /> Analytical Readout
             </div>
             <p className="mt-2 text-sm font-semibold leading-snug text-black">
-              <span className="bg-[#00FF66] px-1 font-bold">PREDICTED TRAFFIC LEVEL: STABLE</span> — Reason: Dynamic
-              attention hook successfully locked the initial 3-second cliff, while rhythmic pacing cuts drop cognitive
-              fatigue to near-zero.
+              <span className="bg-[#00FF66] px-1 font-bold">PREDICTED TRAFFIC: STABLE</span> — {a.optimized_summary}
             </p>
           </div>
         </div>
@@ -179,18 +182,7 @@ function AnalysisTab() {
   );
 }
 
-const DOCTOR_SWAPS = [
-  {
-    bad: "Hey guys, welcome back to my channel. In today's video, I basically wanted to talk about...",
-    good: "◤ Stop filming boring videos. Fix the script before you film.",
-  },
-  {
-    bad: "...honestly, it just comes down to consistency. So yeah, definitely make sure you hit that follow button...",
-    good: "◤ Top agencies run text through attention-decay models. If you want to break the trap, click the link.",
-  },
-];
-
-function DoctorTab() {
+function DoctorTab({ rows }: { rows: Analysis["script_doctor"] }) {
   return (
     <div className="space-y-5">
       <div className="flex items-center gap-2">
@@ -202,21 +194,21 @@ function DoctorTab() {
           <div className="border-r-2 border-white/20 px-4 py-3 font-mono font-bold">Flagged Weakness</div>
           <div className="px-4 py-3 font-mono font-bold">➔ Retaining Remedy</div>
         </div>
-        {DOCTOR_SWAPS.map((row, idx) => (
+        {rows.map((row, idx) => (
           <div key={idx} className="grid grid-cols-2 border-t-2 border-black first:border-t-0">
             <div className="border-r-2 border-black bg-[#FFE5E5] p-4">
               <span className="inline-block border-2 border-black bg-[#FF5E5E] px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-widest text-black">
                 Weak
               </span>
               <p className="mt-2 text-sm leading-snug text-black line-through decoration-[#FF5E5E] decoration-2">
-                {row.bad}
+                {row.flagged_weakness}
               </p>
             </div>
             <div className="bg-[#E5FFE9] p-4">
               <span className="inline-block border-2 border-black bg-[#00FF66] px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-widest text-black">
                 Loop-Locked
               </span>
-              <p className="mt-2 text-sm font-bold leading-snug text-black">{row.good}</p>
+              <p className="mt-2 text-sm font-bold leading-snug text-black">{row.retaining_remedy}</p>
             </div>
           </div>
         ))}
@@ -225,20 +217,7 @@ function DoctorTab() {
   );
 }
 
-const MATRIX_ROWS = [
-  {
-    line: "Stop filming boring videos. Fix the script before you film.",
-    framing: "Close-up punch-in",
-    cues: "Word-by-word kinetic text popups + crisp whoosh audio effect.",
-  },
-  {
-    line: "You waste three hours editing un-paced footage...",
-    framing: "Medium profile cut",
-    cues: "B-roll of a frustrated editor scrolling a video timeline + subtle audio glitch transition.",
-  },
-];
-
-function MatrixTab() {
+function MatrixTab({ rows }: { rows: Analysis["editing_matrix"] }) {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2">
@@ -259,17 +238,17 @@ function MatrixTab() {
               </tr>
             </thead>
             <tbody>
-              {MATRIX_ROWS.map((row, idx) => (
+              {rows.map((row, idx) => (
                 <tr key={idx} className={`border-t-2 border-black ${idx % 2 === 0 ? "bg-white" : "bg-secondary"}`}>
                   <td className="border-r-2 border-black px-4 py-4 align-top">
-                    <p className="text-sm font-bold leading-snug text-black">"{row.line}"</p>
+                    <p className="text-sm font-bold leading-snug text-black">"{row.corrected_line}"</p>
                   </td>
                   <td className="border-r-2 border-black px-4 py-4 align-top">
                     <span className="inline-block border-2 border-black bg-[#FFD93D] px-2 py-1 font-mono text-xs font-bold text-black">
-                      {row.framing}
+                      {row.camera_framing}
                     </span>
                   </td>
-                  <td className="px-4 py-4 align-top text-sm text-black">{row.cues}</td>
+                  <td className="px-4 py-4 align-top text-sm text-black">{row.b_roll_sound_fx}</td>
                 </tr>
               ))}
             </tbody>
@@ -362,11 +341,11 @@ export function Workspace() {
               />
               <button
                 onClick={onAnalyze}
-                disabled={status === "loading"}
+                disabled={status === "loading" || !script.trim()}
                 className={`${BTN_PRIMARY} mt-4 w-full py-3.5 text-base`}
               >
                 {status === "loading" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                Run Retention Audit
+                Fix My Script ➔ Lock Your Loop
               </button>
             </WindowPane>
           </section>
@@ -399,7 +378,7 @@ export function Workspace() {
                     <Loader2 className="h-10 w-10 animate-spin text-black" />
                   </div>
                   <p className="mt-5 font-mono text-sm font-bold uppercase tracking-wider text-black">
-                    Auditing retention curve…
+                    Compiling retention blueprint…
                   </p>
                 </div>
               )}
@@ -422,13 +401,13 @@ export function Workspace() {
                     ))}
                   </TabsList>
                   <TabsContent value="analysis">
-                    <AnalysisTab />
+                    <AnalysisTab a={analysis.analysis} />
                   </TabsContent>
                   <TabsContent value="doctor">
-                    <DoctorTab />
+                    <DoctorTab rows={analysis.script_doctor} />
                   </TabsContent>
                   <TabsContent value="matrix">
-                    <MatrixTab />
+                    <MatrixTab rows={analysis.editing_matrix} />
                   </TabsContent>
                 </Tabs>
               )}
