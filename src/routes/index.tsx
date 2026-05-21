@@ -40,26 +40,31 @@ function LandingPage() {
     <main className="min-h-screen bg-background text-foreground">
       <section className="mx-auto max-w-7xl px-5 pb-16 pt-14 lg:px-8 lg:pt-20">
         <Pill bg="#FF5E5E">
-          <AlertTriangle className="h-3 w-3" /> The 200-View Trap
+          <AlertTriangle className="h-3 w-3" /> Pre-Production Audit
         </Pill>
         <h1 className="mt-5 max-w-4xl font-serif text-5xl font-bold leading-[1.02] tracking-tight text-black md:text-6xl lg:text-7xl">
-          You post bangers. The algorithm shows them to{" "}
+          Stop Filming Boring Videos.{" "}
           <span className="relative inline-block">
-            <span className="relative z-10 px-2">200 people</span>
-            <span className="absolute inset-0 -z-0 bg-[#FF5E5E]" />
+            <span className="relative z-10 px-2">Fix Your Script</span>
+            <span className="absolute inset-0 -z-0 bg-[#00E5D1]" />
           </span>{" "}
-          and stops.
+          Before You Turn on the Camera.
         </h1>
         <p className="mt-6 max-w-2xl text-lg text-muted-foreground">
-          It's not your idea. It's your retention curve. Retention Engine rewrites your scripts and
-          builds a timestamped editing blueprint so the algorithm has no excuse to bury you.
+          Retention Engine audits your script with a Weibull-based retention model (k = 0.7) — the
+          same statistical curve that governs how viewers actually drop off short-form video.
         </p>
+        <div className="mt-5">
+          <Pill bg="#FFD93D">
+            <Zap className="h-3 w-3" /> Powered by Weibull-Based Retention Modeling
+          </Pill>
+        </div>
         <div className="mt-8 flex flex-wrap items-center gap-3">
           <Link to="/app" className={BTN_PRIMARY}>
             <Zap className="h-4 w-4" /> Launch Workspace
             <ArrowRight className="h-4 w-4" />
           </Link>
-          <Pill bg="#FFD93D">Free tier · No card required</Pill>
+          <Pill>Single tier · ₹499/mo · Unlimited audits</Pill>
         </div>
       </section>
 
@@ -114,49 +119,34 @@ function LandingPage() {
             Pay less than your last failed boost.
           </h2>
         </div>
-        <div className="mx-auto grid max-w-4xl gap-6 md:grid-cols-2">
-          <div className={`${CARD} p-7`}>
-            <Pill>Solo</Pill>
-            <div className="mt-4 flex items-baseline gap-2">
-              <span className="font-serif text-5xl font-bold text-black">₹499</span>
-              <span className="font-mono text-sm text-muted-foreground">/month</span>
-            </div>
-            <p className="mt-2 text-sm text-muted-foreground">For the lone creator shipping daily.</p>
-            <ul className="mt-5 space-y-2 text-sm text-black">
-              {["50 scripts / month", "Script Doctor + Editing Matrix", "Multi-language detection", "Email support"].map(
-                (t) => (
-                  <li key={t} className="flex items-center gap-2">
-                    <Check className="h-4 w-4" /> {t}
-                  </li>
-                ),
-              )}
-            </ul>
-            <Link to="/app" className={`${BTN_PRIMARY} mt-6 w-full`}>
-              Start with Solo
-            </Link>
-          </div>
-
-          <div className={`${CARD} relative p-7`} style={{ backgroundColor: "#FFFBEA" }}>
+        <div className="mx-auto max-w-xl">
+          <div className={`${CARD} relative p-8`} style={{ backgroundColor: "#FFFBEA" }}>
             <div className="absolute -top-3 right-5">
-              <Pill bg="#FF5E5E">Most Popular</Pill>
+              <Pill bg="#FF5E5E">One Tier · All Access</Pill>
             </div>
-            <Pill bg="#FFD93D">Agency</Pill>
-            <div className="mt-4 flex items-baseline gap-2">
-              <span className="font-serif text-5xl font-bold text-black">₹1,499</span>
+            <Pill bg="#FFD93D">Full Terminal Access</Pill>
+            <h3 className="mt-4 font-serif text-2xl font-bold text-black">
+              Unlimited Audits for ₹499/month
+            </h3>
+            <div className="mt-3 flex items-baseline gap-2">
+              <span className="font-serif text-6xl font-bold text-black">₹499</span>
               <span className="font-mono text-sm text-muted-foreground">/month</span>
             </div>
-            <p className="mt-2 text-sm text-muted-foreground">For teams running 5+ client accounts.</p>
-            <ul className="mt-5 space-y-2 text-sm text-black">
-              {["300 scripts / month", "Everything in Solo", "Team workspace + shared library", "Priority support"].map(
-                (t) => (
-                  <li key={t} className="flex items-center gap-2">
-                    <Check className="h-4 w-4" /> {t}
-                  </li>
-                ),
-              )}
+            <ul className="mt-6 space-y-2 text-sm text-black">
+              {[
+                "Unlimited Weibull script audits",
+                "Script Doctor: hook, emotional & CTA rewrites",
+                "Timestamped Editing Matrix (camera, B-roll, pacing)",
+                "Locked k = 0.7 short-form retention model",
+                "Priority support",
+              ].map((t) => (
+                <li key={t} className="flex items-center gap-2">
+                  <Check className="h-4 w-4" /> {t}
+                </li>
+              ))}
             </ul>
-            <Link to="/app" className={`${BTN_PRIMARY} mt-6 w-full`}>
-              Start with Agency
+            <Link to="/app" className={`${BTN_PRIMARY} mt-7 w-full`}>
+              <Zap className="h-4 w-4" /> Launch Workspace
             </Link>
           </div>
         </div>
