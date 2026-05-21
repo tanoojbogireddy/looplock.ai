@@ -15,6 +15,7 @@ Rules for chart data:
 
 Plain-language rules (write like you're explaining to a 15-year-old, NO jargon):
 - video_score: integer 1-10 rating the script's retention quality.
+- score_justification: ONE concise, data-backed sentence explaining WHY this exact score was given (cite the specific drop second, filler density, hook weakness, etc.). Max 22 words.
 - plain_summary: ONE short sentence in plain English summarizing what will happen with viewers.
 - problem_plain: ONE short sentence describing what's going wrong, no technical terms.
 - fix_plain: ONE short sentence describing the improvement after the rewrite.
@@ -28,6 +29,9 @@ Editing Matrix rules:
 - corrected_line: the rewritten sentence as it should be spoken on camera.
 - editing_technique: format EXACTLY as "[Cut type] + [Camera move] + [SFX]" (e.g. "Hard cut + zoom in + whoosh SFX").
 - camera_framing and b_roll_sound_fx still required for backwards compat.
+
+Full script rule:
+- full_rewritten_script: the complete end-to-end rewritten script as a single string, concatenating every optimized line in shoot order, separated by line breaks. Ready to read on camera. No headings, no notes, no markdown.
 
 Produce 2-4 script_doctor swaps and 3-6 editing_matrix rows.`;
 
@@ -43,6 +47,7 @@ const TOOL = {
           type: "object",
           properties: {
             video_score: { type: "number", minimum: 1, maximum: 10 },
+            score_justification: { type: "string" },
             plain_summary: { type: "string" },
             problem_plain: { type: "string" },
             fix_plain: { type: "string" },
@@ -52,7 +57,7 @@ const TOOL = {
             optimized_chart_data: { type: "array", items: { type: "number" }, minItems: 11, maxItems: 11 },
             optimized_summary: { type: "string" },
           },
-          required: ["video_score", "plain_summary", "problem_plain", "fix_plain", "original_drop_second", "original_drop_reason", "original_chart_data", "optimized_chart_data", "optimized_summary"],
+          required: ["video_score", "score_justification", "plain_summary", "problem_plain", "fix_plain", "original_drop_second", "original_drop_reason", "original_chart_data", "optimized_chart_data", "optimized_summary"],
           additionalProperties: false,
         },
         script_doctor: {
@@ -82,8 +87,9 @@ const TOOL = {
             additionalProperties: false,
           },
         },
+        full_rewritten_script: { type: "string" },
       },
-      required: ["analysis", "script_doctor", "editing_matrix"],
+      required: ["analysis", "script_doctor", "editing_matrix", "full_rewritten_script"],
       additionalProperties: false,
     },
   },
