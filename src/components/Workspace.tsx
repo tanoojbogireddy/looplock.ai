@@ -86,71 +86,7 @@ function RetentionRing({ score }: { score: number }) {
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
         <span className="font-serif text-4xl font-bold text-black">{score}%</span>
-        <span className="font-mono text-[10px] font-bold uppercase tracking-widest text-black/70">
-          Retention
-        </span>
-      </div>
-    </div>
-  );
-}
-
-function MetricsTab({ a }: { a: Analysis }) {
-  return (
-    <div className="space-y-6">
-      <div className={`${CARD} flex flex-col items-center gap-5 p-6 md:flex-row md:items-center md:gap-7`}>
-        <RetentionRing score={a.retention_score} />
-        <div className="flex-1 space-y-3">
-          <div className="flex items-center gap-2">
-            <Pill bg="#FFD93D">Weibull k = {a.weibull_shape_k ?? 0.7}</Pill>
-            <Pill>λ = {a.hook_strength_lambda}</Pill>
-          </div>
-          <p className="font-mono text-xs leading-relaxed text-black">
-            <span className="font-bold uppercase tracking-widest">Formula:</span>{" "}
-            <span className="border-2 border-black bg-secondary px-2 py-0.5">{a.weibull_formula_display}</span>
-          </p>
-          <div className="grid grid-cols-2 gap-3 pt-1">
-            <div className="border-2 border-black bg-white p-3 shadow-[3px_3px_0px_0px_#000000]">
-              <div className="font-mono text-[10px] font-bold uppercase tracking-widest text-black/70">
-                Hook Strength (λ)
-              </div>
-              <div className="mt-1 font-serif text-2xl font-bold text-black">{a.hook_strength_lambda}</div>
-            </div>
-            <div className="border-2 border-black bg-white p-3 shadow-[3px_3px_0px_0px_#000000]">
-              <div className="font-mono text-[10px] font-bold uppercase tracking-widest text-black/70">
-                Pacing Frequency
-              </div>
-              <div className="mt-1 font-serif text-2xl font-bold text-black">{a.pacing_frequency}</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className={`${CARD} p-5`}>
-        <div className="flex items-center gap-2 font-mono text-[10px] font-bold uppercase tracking-widest text-black">
-          <Activity className="h-3.5 w-3.5" /> Scale Parameter
-        </div>
-        <div className="mt-3 flex items-center justify-between font-mono text-xs text-black">
-          <span>Scale (λ)</span>
-          <span className="font-bold">{a.hook_strength_lambda} / 100</span>
-        </div>
-        <div className="mt-2 h-5 w-full border-2 border-black bg-white">
-          <div
-            className="h-full border-r-2 border-black bg-[#00E5D1] transition-all"
-            style={{ width: `${a.hook_strength_lambda}%` }}
-          />
-        </div>
-      </div>
-
-      <div className={`${CARD} p-5`} style={{ backgroundColor: "#FFE5E5" }}>
-        <div className="flex items-center gap-2 font-mono text-[10px] font-bold uppercase tracking-widest text-black">
-          <AlertTriangle className="h-3.5 w-3.5" /> Critical Weibull Alert
-        </div>
-        <div className="mt-3">
-          <span className="inline-flex items-center gap-2 border-2 border-black bg-[#FF5E5E] px-3 py-2 text-sm font-extrabold uppercase tracking-wider text-black shadow-[3px_3px_0px_0px_#000000]">
-            <AlertTriangle className="h-4 w-4" />
-            Critical Weibull Drop Risk Detected at Line {a.drop_risk_line} (Pacing Violation)
-          </span>
-        </div>
+        <span className="font-mono text-[10px] font-bold uppercase tracking-widest text-black/70">Retention</span>
       </div>
     </div>
   );
@@ -200,22 +136,14 @@ function DoctorTab({ a }: { a: Analysis }) {
 
       <div className="border-2 border-black bg-white shadow-[6px_6px_0px_0px_#000000]">
         <div className="flex items-center justify-between border-b-2 border-black bg-black px-4 py-2.5">
-          <span className="font-mono text-[10px] font-bold uppercase tracking-widest text-white">
-            final-script.txt
-          </span>
-          <button
-            onClick={onCopy}
-            className={BTN_SECONDARY}
-            style={{ backgroundColor: copied ? "#00FF66" : "#fff" }}
-          >
+          <span className="font-mono text-[10px] font-bold uppercase tracking-widest text-white">final-script.txt</span>
+          <button onClick={onCopy} className={BTN_SECONDARY} style={{ backgroundColor: copied ? "#00FF66" : "#fff" }}>
             {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
             {copied ? "Copied!" : "Copy"}
           </button>
         </div>
         <div className="max-h-[420px] overflow-y-auto p-5">
-          <pre className="whitespace-pre-wrap font-mono text-sm leading-relaxed text-black">
-            {finalScript}
-          </pre>
+          <pre className="whitespace-pre-wrap font-mono text-sm leading-relaxed text-black">{finalScript}</pre>
         </div>
       </div>
       <div className="flex items-center justify-center pt-1">
@@ -259,9 +187,7 @@ function MatrixTab({ a }: { a: Analysis }) {
                       {row.timestamp}
                     </span>
                   </td>
-                  <td className="border-r-2 border-black px-4 py-4 align-top font-medium text-black">
-                    {row.angle}
-                  </td>
+                  <td className="border-r-2 border-black px-4 py-4 align-top font-medium text-black">{row.angle}</td>
                   <td className="border-r-2 border-black px-4 py-4 align-top text-black">{row.b_roll}</td>
                   <td className="px-4 py-4 align-top text-black">{row.pacing}</td>
                 </tr>
@@ -338,9 +264,7 @@ export function Workspace() {
           <Pill bg="#00FF66">
             <span className="h-1.5 w-1.5 bg-black" /> Workspace Terminal · Weibull Engine
           </Pill>
-          <h1 className="mt-4 font-serif text-4xl font-bold text-black md:text-5xl">
-            Paste a script. Ship a banger.
-          </h1>
+          <h1 className="mt-4 font-serif text-4xl font-bold text-black md:text-5xl">Paste a script. Ship a banger.</h1>
           <p className="mt-2 font-mono text-xs uppercase tracking-widest text-muted-foreground">
             R(t) = e^(-(t / λ)^0.7) · early drop-off cliff locked
           </p>
@@ -374,9 +298,7 @@ export function Workspace() {
                   <div className="flex h-16 w-16 items-center justify-center border-2 border-black bg-[#00FF66] shadow-[4px_4px_0px_0px_#000000]">
                     <Sparkles className="h-7 w-7 text-black" />
                   </div>
-                  <h3 className="mt-5 font-serif text-xl font-bold text-black">
-                    Your blueprint will appear here
-                  </h3>
+                  <h3 className="mt-5 font-serif text-xl font-bold text-black">Your blueprint will appear here</h3>
                   <p className="mt-1 max-w-sm text-sm text-muted-foreground">
                     Paste a raw script and run the Weibull audit — Metrics, Doctor, and Matrix on the right.
                   </p>
