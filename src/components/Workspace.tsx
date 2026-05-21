@@ -10,12 +10,15 @@ import {
   ArrowRight,
   Copy,
   Printer,
+  Lock,
+  FileText,
 } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 type Analysis = {
   analysis: {
     video_score: number;
+    score_justification: string;
     plain_summary: string;
     problem_plain: string;
     fix_plain: string;
@@ -32,6 +35,7 @@ type Analysis = {
     b_roll_sound_fx: string;
     editing_technique: string;
   }[];
+  full_rewritten_script: string;
 };
 
 const CARD = "border-2 border-black bg-white shadow-[6px_6px_0px_0px_#000000]";
