@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Zap, Stethoscope, Scissors, Check, ArrowRight, AlertTriangle } from "lucide-react";
+import { Zap, Stethoscope, Scissors, Check, ArrowRight } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   head: () => ({
