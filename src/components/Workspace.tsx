@@ -92,6 +92,59 @@ function RetentionRing({ score }: { score: number }) {
   );
 }
 
+function MetricsTab({ a }: { a: Analysis }) {
+  return (
+    <div className="space-y-6">
+      <div className={`${CARD} flex flex-col items-center gap-5 p-6 md:flex-row md:gap-7`}>
+        <RetentionRing score={a.retention_score} />
+        <div className="flex-1 space-y-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <Pill bg="#FFD93D">Weibull k = {a.weibull_shape_k ?? 0.7}</Pill>
+            <Pill>λ = {a.hook_strength_lambda}</Pill>
+            <Pill bg="#00FF66">Pacing {a.pacing_frequency}</Pill>
+          </div>
+          <p className="font-mono text-xs leading-relaxed text-black">
+            <span className="font-bold uppercase tracking-widest">Formula:</span>{" "}
+            <span className="border-2 border-black bg-secondary px-2 py-0.5">{a.weibull_formula_display}</span>
+          </p>
+          <div className="grid grid-cols-2 gap-3 pt-1">
+            <div className="border-2 border-black bg-white p-3 shadow-[3px_3px_0px_0px_#000000]">
+              <div className="font-mono text-[10px] font-bold uppercase tracking-widest text-black/70">Scale (λ)</div>
+              <div className="mt-1 font-serif text-2xl font-bold text-black">{a.hook_strength_lambda}</div>
+            </div>
+            <div className="border-2 border-black bg-white p-3 shadow-[3px_3px_0px_0px_#000000]">
+              <div className="font-mono text-[10px] font-bold uppercase tracking-widest text-black/70">Pacing Frequency</div>
+              <div className="mt-1 font-serif text-2xl font-bold text-black">{a.pacing_frequency}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className={`${CARD} p-5`}>
+        <div className="flex items-center justify-between font-mono text-xs text-black">
+          <span className="font-bold uppercase tracking-widest">Scale (λ)</span>
+          <span className="font-bold">{a.hook_strength_lambda} / 100</span>
+        </div>
+        <div className="mt-2 h-5 w-full border-2 border-black bg-white">
+          <div className="h-full border-r-2 border-black bg-[#00E5D1] transition-all" style={{ width: `${a.hook_strength_lambda}%` }} />
+        </div>
+      </div>
+
+      <div className={`${CARD} p-5`} style={{ backgroundColor: "#FFE5E5" }}>
+        <div className="flex items-center gap-2 font-mono text-[10px] font-bold uppercase tracking-widest text-black">
+          <AlertTriangle className="h-3.5 w-3.5" /> Critical Weibull Alert
+        </div>
+        <div className="mt-3">
+          <span className="inline-flex items-center gap-2 border-2 border-black bg-[#FF5E5E] px-3 py-2 text-sm font-extrabold uppercase tracking-wider text-black shadow-[3px_3px_0px_0px_#000000]">
+            <AlertTriangle className="h-4 w-4" />
+            Critical Weibull Drop Risk Detected at Line {a.drop_risk_line} (Pacing Violation)
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function DoctorTab({ a }: { a: Analysis }) {
   const [copied, setCopied] = useState(false);
   const finalScript = [
