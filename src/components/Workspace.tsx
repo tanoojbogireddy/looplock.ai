@@ -462,9 +462,13 @@ export function Workspace() {
   const [analysis, setAnalysis] = useState<Analysis | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<string>("analysis");
+  const FREE_LIMIT = 3;
+  const [creditsRemaining, setCreditsRemaining] = useState<number>(FREE_LIMIT);
+  const outOfCredits = creditsRemaining <= 0;
 
   const onAnalyze = async () => {
     if (!script.trim()) return;
+    if (outOfCredits) return;
     setStatus("loading");
     setError(null);
     try {
@@ -480,6 +484,7 @@ export function Workspace() {
       const data = (await res.json()) as Analysis;
       setAnalysis(data);
       trackUsage();
+      setCreditsRemaining((c) => Math.max(0, c - 1));
       setStatus("done");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong");
@@ -491,9 +496,15 @@ export function Workspace() {
     <main className="min-h-[calc(100vh-64px)] bg-background text-foreground">
       <div className="mx-auto max-w-7xl px-5 py-10 lg:px-8 lg:py-12">
         <div className="mb-8">
-          <Pill bg="#00FF66">
-            <span className="h-1.5 w-1.5 bg-black" /> ◤ LoopLock Workspace
-          </Pill>
+          <div className="flex flex-wrap items-center gap-3">
+            <Pill bg="#00FF66">
+              <span className="h-1.5 w-1.5 bg-black" /> ◤ LoopLock Workspace
+            </Pill>
+            <Pill bg={outOfCredits ? "#FF5E5E" : "#FFD93D"}>
+              {outOfCredits ? <Lock className="h-3 w-3" /> : <Zap className="h-3 w-3" />}
+              Free Credits Remaining: {creditsRemaining}/{FREE_LIMIT}
+            </Pill>
+          </div>
           <h1 className="mt-4 font-serif text-4xl font-bold text-black md:text-5xl">Paste a script. Ship a banger.</h1>
           <p className="mt-2 font-mono text-xs uppercase tracking-widest text-muted-foreground">
             Pre-production retention audit · loop-lock your script before the camera rolls
@@ -512,12 +523,53 @@ export function Workspace() {
               />
               <button
                 onClick={onAnalyze}
-                disabled={status === "loading" || !script.trim()}
+                disabled={status === "loading" || !script.trim() || outOfCredits}
                 className={`${BTN_PRIMARY} mt-4 w-full py-3.5 text-base`}
               >
-                {status === "loading" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                Fix My Script ➔ Lock Your Loop
+                {status === "loading" ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : outOfCredits ? (
+                  <Lock className="h-4 w-4" />
+                ) : (
+                  <Sparkles className="h-4 w-4" />
+                )}
+                {outOfCredits ? "Free Credits Used Up" : "Analyze My Script ➔ See Results"}
               </button>
+              {outOfCredits && (
+                <div
+                  className={`${CARD} mt-5 p-5`}
+                  style={{ backgroundColor: "#FFD93D" }}
+                >
+                  <div className="flex items-center gap-2">
+                    <Lock className="h-5 w-5 text-black" />
+                    <span className="font-mono text-xs font-bold uppercase tracking-widest text-black">
+                      Free tier locked
+                    </span>
+                  </div>
+                  <h3 className="mt-2 font-serif text-2xl font-extrabold text-black">
+                    Unlock Unlimited Audits
+                  </h3>
+                  <p className="mt-1 text-sm font-semibold text-black">
+                    You've used all 3 free script audits. Upgrade to keep loop-locking every script before you film.
+                  </p>
+                  <div className="mt-3 flex items-baseline gap-2">
+                    <span className="font-serif text-4xl font-extrabold text-black">₹499</span>
+                    <span className="font-mono text-xs font-bold uppercase tracking-widest text-black">/ month</span>
+                  </div>
+                  <ul className="mt-3 space-y-1 text-sm font-semibold text-black">
+                    <li>✅ Unlimited script audits</li>
+                    <li>✅ Full rewritten scripts + editor briefings</li>
+                    <li>✅ Single tier · cancel anytime</li>
+                  </ul>
+                  <button
+                    type="button"
+                    className={`${BTN_PRIMARY} mt-4 w-full py-3 text-base`}
+                    style={{ backgroundColor: "#00FF66" }}
+                  >
+                    <Sparkles className="h-4 w-4" /> Upgrade to Unlimited
+                  </button>
+                </div>
+              )}
             </WindowPane>
           </section>
 
@@ -581,6 +633,9 @@ export function Workspace() {
                     <MatrixTab rows={analysis.editing_matrix} />
                   </TabsContent>
                 </Tabs>
+              )}
+              {status === "done" && analysis?.full_rewritten_script && (
+                <FullScriptCard script={analysis.full_rewritten_script} />
               )}
             </WindowPane>
           </section>
