@@ -10,12 +10,15 @@ import {
   ArrowRight,
   Copy,
   Printer,
+  Lock,
+  FileText,
 } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 type Analysis = {
   analysis: {
     video_score: number;
+    score_justification: string;
     plain_summary: string;
     problem_plain: string;
     fix_plain: string;
@@ -32,6 +35,7 @@ type Analysis = {
     b_roll_sound_fx: string;
     editing_technique: string;
   }[];
+  full_rewritten_script: string;
 };
 
 const CARD = "border-2 border-black bg-white shadow-[6px_6px_0px_0px_#000000]";
@@ -99,7 +103,11 @@ function RetentionCurve({
   }
 
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="w-full border-2 border-black bg-white">
+    <svg
+      viewBox={`0 0 ${W} ${H}`}
+      preserveAspectRatio="xMidYMid meet"
+      className="block h-auto w-full max-w-full border-2 border-black bg-white"
+    >
       {yTicks.map((t) => (
         <line key={`y${t}`} x1={pad.l} x2={W - pad.r} y1={y(t)} y2={y(t)} stroke="#000" strokeOpacity={0.12} />
       ))}
@@ -175,16 +183,21 @@ function AnalysisTab({
             {score}/10
           </span>
         </div>
+        {a.score_justification && (
+          <p className="mt-3 max-w-xl font-mono text-[11px] font-bold uppercase tracking-wider text-black/80">
+            {a.score_justification}
+          </p>
+        )}
         <p className="mt-4 max-w-xl font-serif text-base font-semibold leading-snug text-black md:text-lg">
           {a.plain_summary}
         </p>
       </div>
 
       {/* Two charts side by side */}
-      <div className="grid gap-5 md:grid-cols-2">
-        <div className={`${CARD} p-4`} style={{ backgroundColor: "#FFE5E5" }}>
+      <div className="grid gap-5 sm:grid-cols-2">
+        <div className={`${CARD} min-w-0 p-3 sm:p-4`} style={{ backgroundColor: "#FFE5E5" }}>
           <h4 className="font-serif text-base font-bold text-black">When people stop watching</h4>
-          <div className="mt-3">
+          <div className="mt-3 w-full overflow-hidden">
             <RetentionCurve
               data={a.original_chart_data}
               color="#FF5E5E"
@@ -193,9 +206,9 @@ function AnalysisTab({
             />
           </div>
         </div>
-        <div className={`${CARD} p-4`} style={{ backgroundColor: "#E5FFE9" }}>
+        <div className={`${CARD} min-w-0 p-3 sm:p-4`} style={{ backgroundColor: "#E5FFE9" }}>
           <h4 className="font-serif text-base font-bold text-black">After the fix</h4>
-          <div className="mt-3">
+          <div className="mt-3 w-full overflow-hidden">
             <RetentionCurve data={a.optimized_chart_data} color="#00FF66" />
           </div>
         </div>
@@ -386,6 +399,36 @@ function escapeHtml(s: string) {
     .replace(/"/g, "&quot;");
 }
 
+function FullScriptCard({ script }: { script: string }) {
+  const [copied, setCopied] = useState(false);
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(script);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
+    } catch {
+      /* no-op */
+    }
+  };
+  if (!script) return null;
+  return (
+    <div className={`${CARD} mt-6 p-5`} style={{ backgroundColor: "#FFFDF5" }}>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <FileText className="h-5 w-5 text-black" />
+          <h3 className="font-serif text-lg font-bold text-black">Full Optimized Script</h3>
+        </div>
+        <button onClick={copy} className={BTN_PRIMARY}>
+          <Copy className="h-4 w-4" /> {copied ? "Copied!" : "Copy Entire Script"}
+        </button>
+      </div>
+      <pre className="mt-4 max-h-[420px] overflow-auto whitespace-pre-wrap border-2 border-black bg-white p-4 font-mono text-sm leading-relaxed text-black">
+        {script}
+      </pre>
+    </div>
+  );
+}
+
 function WindowPane({
   title,
   accent = "#FFD93D",
@@ -419,9 +462,13 @@ export function Workspace() {
   const [analysis, setAnalysis] = useState<Analysis | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<string>("analysis");
+  const FREE_LIMIT = 3;
+  const [creditsRemaining, setCreditsRemaining] = useState<number>(FREE_LIMIT);
+  const outOfCredits = creditsRemaining <= 0;
 
   const onAnalyze = async () => {
     if (!script.trim()) return;
+    if (outOfCredits) return;
     setStatus("loading");
     setError(null);
     try {
@@ -437,6 +484,7 @@ export function Workspace() {
       const data = (await res.json()) as Analysis;
       setAnalysis(data);
       trackUsage();
+      setCreditsRemaining((c) => Math.max(0, c - 1));
       setStatus("done");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong");
@@ -448,9 +496,15 @@ export function Workspace() {
     <main className="min-h-[calc(100vh-64px)] bg-background text-foreground">
       <div className="mx-auto max-w-7xl px-5 py-10 lg:px-8 lg:py-12">
         <div className="mb-8">
-          <Pill bg="#00FF66">
-            <span className="h-1.5 w-1.5 bg-black" /> ◤ LoopLock Workspace
-          </Pill>
+          <div className="flex flex-wrap items-center gap-3">
+            <Pill bg="#00FF66">
+              <span className="h-1.5 w-1.5 bg-black" /> ◤ LoopLock Workspace
+            </Pill>
+            <Pill bg={outOfCredits ? "#FF5E5E" : "#FFD93D"}>
+              {outOfCredits ? <Lock className="h-3 w-3" /> : <Zap className="h-3 w-3" />}
+              Free Credits Remaining: {creditsRemaining}/{FREE_LIMIT}
+            </Pill>
+          </div>
           <h1 className="mt-4 font-serif text-4xl font-bold text-black md:text-5xl">Paste a script. Ship a banger.</h1>
           <p className="mt-2 font-mono text-xs uppercase tracking-widest text-muted-foreground">
             Pre-production retention audit · loop-lock your script before the camera rolls
@@ -469,12 +523,53 @@ export function Workspace() {
               />
               <button
                 onClick={onAnalyze}
-                disabled={status === "loading" || !script.trim()}
+                disabled={status === "loading" || !script.trim() || outOfCredits}
                 className={`${BTN_PRIMARY} mt-4 w-full py-3.5 text-base`}
               >
-                {status === "loading" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                Fix My Script ➔ Lock Your Loop
+                {status === "loading" ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : outOfCredits ? (
+                  <Lock className="h-4 w-4" />
+                ) : (
+                  <Sparkles className="h-4 w-4" />
+                )}
+                {outOfCredits ? "Free Credits Used Up" : "Analyze My Script ➔ See Results"}
               </button>
+              {outOfCredits && (
+                <div
+                  className={`${CARD} mt-5 p-5`}
+                  style={{ backgroundColor: "#FFD93D" }}
+                >
+                  <div className="flex items-center gap-2">
+                    <Lock className="h-5 w-5 text-black" />
+                    <span className="font-mono text-xs font-bold uppercase tracking-widest text-black">
+                      Free tier locked
+                    </span>
+                  </div>
+                  <h3 className="mt-2 font-serif text-2xl font-extrabold text-black">
+                    Unlock Unlimited Audits
+                  </h3>
+                  <p className="mt-1 text-sm font-semibold text-black">
+                    You've used all 3 free script audits. Upgrade to keep loop-locking every script before you film.
+                  </p>
+                  <div className="mt-3 flex items-baseline gap-2">
+                    <span className="font-serif text-4xl font-extrabold text-black">₹499</span>
+                    <span className="font-mono text-xs font-bold uppercase tracking-widest text-black">/ month</span>
+                  </div>
+                  <ul className="mt-3 space-y-1 text-sm font-semibold text-black">
+                    <li>✅ Unlimited script audits</li>
+                    <li>✅ Full rewritten scripts + editor briefings</li>
+                    <li>✅ Single tier · cancel anytime</li>
+                  </ul>
+                  <button
+                    type="button"
+                    className={`${BTN_PRIMARY} mt-4 w-full py-3 text-base`}
+                    style={{ backgroundColor: "#00FF66" }}
+                  >
+                    <Sparkles className="h-4 w-4" /> Upgrade to Unlimited
+                  </button>
+                </div>
+              )}
             </WindowPane>
           </section>
 
@@ -538,6 +633,9 @@ export function Workspace() {
                     <MatrixTab rows={analysis.editing_matrix} />
                   </TabsContent>
                 </Tabs>
+              )}
+              {status === "done" && analysis?.full_rewritten_script && (
+                <FullScriptCard script={analysis.full_rewritten_script} />
               )}
             </WindowPane>
           </section>
