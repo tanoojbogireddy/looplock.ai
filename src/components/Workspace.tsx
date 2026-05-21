@@ -418,6 +418,7 @@ export function Workspace() {
   const [status, setStatus] = useState<"idle" | "loading" | "done">("idle");
   const [analysis, setAnalysis] = useState<Analysis | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [tab, setTab] = useState<string>("analysis");
 
   const onAnalyze = async () => {
     if (!script.trim()) return;
@@ -510,7 +511,7 @@ export function Workspace() {
                 </div>
               )}
               {status === "done" && analysis && (
-                <Tabs defaultValue="analysis" className="w-full">
+                <Tabs value={tab} onValueChange={setTab} className="w-full">
                   <TabsList className="mb-4 grid w-full grid-cols-3 gap-0 border-2 border-black bg-white p-0 shadow-[3px_3px_0px_0px_#000000] h-auto rounded-none">
                     {[
                       { v: "analysis", l: "Analysis", icon: Gauge },
@@ -528,7 +529,7 @@ export function Workspace() {
                     ))}
                   </TabsList>
                   <TabsContent value="analysis">
-                    <AnalysisTab a={analysis.analysis} />
+                    <AnalysisTab a={analysis.analysis} onJumpToDoctor={() => setTab("doctor")} />
                   </TabsContent>
                   <TabsContent value="doctor">
                     <DoctorTab rows={analysis.script_doctor} />
