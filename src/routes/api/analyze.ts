@@ -13,6 +13,22 @@ Rules for chart data:
 - optimized_chart_data should plateau in the 80-95% range after stabilizing.
 - original_drop_second is the second (1-30) where the first major drop occurs.
 
+Plain-language rules (write like you're explaining to a 15-year-old, NO jargon):
+- video_score: integer 1-10 rating the script's retention quality.
+- plain_summary: ONE short sentence in plain English summarizing what will happen with viewers.
+- problem_plain: ONE short sentence describing what's going wrong, no technical terms.
+- fix_plain: ONE short sentence describing the improvement after the rewrite.
+
+Script Doctor rules:
+- flagged_weakness: the EXACT weak sentence copied verbatim from the user's script.
+- retaining_remedy: a fully rewritten, copy-paste-ready replacement sentence. No advice, no notes, just the new line.
+- why_it_works: max 8 words explaining the fix.
+
+Editing Matrix rules:
+- corrected_line: the rewritten sentence as it should be spoken on camera.
+- editing_technique: format EXACTLY as "[Cut type] + [Camera move] + [SFX]" (e.g. "Hard cut + zoom in + whoosh SFX").
+- camera_framing and b_roll_sound_fx still required for backwards compat.
+
 Produce 2-4 script_doctor swaps and 3-6 editing_matrix rows.`;
 
 const TOOL = {
@@ -26,13 +42,17 @@ const TOOL = {
         analysis: {
           type: "object",
           properties: {
+            video_score: { type: "number", minimum: 1, maximum: 10 },
+            plain_summary: { type: "string" },
+            problem_plain: { type: "string" },
+            fix_plain: { type: "string" },
             original_drop_second: { type: "number" },
             original_drop_reason: { type: "string" },
             original_chart_data: { type: "array", items: { type: "number" }, minItems: 11, maxItems: 11 },
             optimized_chart_data: { type: "array", items: { type: "number" }, minItems: 11, maxItems: 11 },
             optimized_summary: { type: "string" },
           },
-          required: ["original_drop_second", "original_drop_reason", "original_chart_data", "optimized_chart_data", "optimized_summary"],
+          required: ["video_score", "plain_summary", "problem_plain", "fix_plain", "original_drop_second", "original_drop_reason", "original_chart_data", "optimized_chart_data", "optimized_summary"],
           additionalProperties: false,
         },
         script_doctor: {
@@ -42,8 +62,9 @@ const TOOL = {
             properties: {
               flagged_weakness: { type: "string" },
               retaining_remedy: { type: "string" },
+              why_it_works: { type: "string" },
             },
-            required: ["flagged_weakness", "retaining_remedy"],
+            required: ["flagged_weakness", "retaining_remedy", "why_it_works"],
             additionalProperties: false,
           },
         },
@@ -55,8 +76,9 @@ const TOOL = {
               corrected_line: { type: "string" },
               camera_framing: { type: "string" },
               b_roll_sound_fx: { type: "string" },
+              editing_technique: { type: "string" },
             },
-            required: ["corrected_line", "camera_framing", "b_roll_sound_fx"],
+            required: ["corrected_line", "camera_framing", "b_roll_sound_fx", "editing_technique"],
             additionalProperties: false,
           },
         },
