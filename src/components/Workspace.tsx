@@ -103,7 +103,11 @@ function RetentionCurve({
   }
 
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="w-full border-2 border-black bg-white">
+    <svg
+      viewBox={`0 0 ${W} ${H}`}
+      preserveAspectRatio="xMidYMid meet"
+      className="block h-auto w-full max-w-full border-2 border-black bg-white"
+    >
       {yTicks.map((t) => (
         <line key={`y${t}`} x1={pad.l} x2={W - pad.r} y1={y(t)} y2={y(t)} stroke="#000" strokeOpacity={0.12} />
       ))}
