@@ -2,36 +2,38 @@ import { useState } from "react";
 import {
   Loader2,
   Sparkles,
-  Flame,
   Scissors,
   AlertTriangle,
   Zap,
   Copy,
   Check,
-  Languages,
   Stethoscope,
-  ArrowRight,
-  ArrowDown,
   FileText,
   Gauge,
+  Activity,
 } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
-type MatrixRow = { time: string; line: string; lineRoman: string; directive: string };
+type MatrixRow = {
+  timestamp: string;
+  angle: string;
+  b_roll: string;
+  pacing: string;
+};
 
 type Analysis = {
-  language: string;
-  platform: string;
-  style: string;
-  dropOffRisk: number;
-  watchTimeLift: string;
-  fillerReduction: string;
-  hookCount: number;
-  cutCount: number;
-  fluffDiagnosis: string;
-  hooks: { label: string; text: string }[];
-  replacements: { wrong: string; right: string }[];
-  matrix: MatrixRow[];
+  retention_score: number;
+  hook_strength_lambda: number;
+  pacing_frequency: number;
+  drop_risk_line: number;
+  weibull_formula_display: string;
+  weibull_shape_k?: number;
+  script_doctor: {
+    stronger_hook: string;
+    emotional_rewrite: string;
+    cta_rewrite: string;
+  };
+  editing_matrix: MatrixRow[];
 };
 
 const CARD = "border-2 border-black bg-white shadow-[6px_6px_0px_0px_#000000]";
@@ -60,61 +62,107 @@ function trackUsage() {
   localStorage.setItem(key, String(cur + 1));
 }
 
+function RetentionRing({ score }: { score: number }) {
+  const size = 160;
+  const stroke = 14;
+  const r = (size - stroke) / 2;
+  const c = 2 * Math.PI * r;
+  const offset = c - (Math.max(0, Math.min(100, score)) / 100) * c;
+  return (
+    <div className="relative" style={{ width: size, height: size }}>
+      <svg width={size} height={size} className="-rotate-90">
+        <circle cx={size / 2} cy={size / 2} r={r} stroke="#000" strokeWidth={stroke} fill="none" opacity={0.12} />
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={r}
+          stroke="#00E5D1"
+          strokeWidth={stroke}
+          fill="none"
+          strokeDasharray={c}
+          strokeDashoffset={offset}
+          strokeLinecap="butt"
+        />
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <span className="font-serif text-4xl font-bold text-black">{score}%</span>
+        <span className="font-mono text-[10px] font-bold uppercase tracking-widest text-black/70">
+          Retention
+        </span>
+      </div>
+    </div>
+  );
+}
+
 function MetricsTab({ a }: { a: Analysis }) {
-  // derive retention score from dropOffRisk
-  const retention = Math.max(0, 100 - a.dropOffRisk * 10);
   return (
     <div className="space-y-6">
-      <div className={`${CARD} p-5`}>
-        <div className="flex items-center justify-between font-mono text-[10px] font-bold uppercase tracking-widest text-black">
-          <span className="flex items-center gap-2">
-            <Gauge className="h-3.5 w-3.5" /> Retention Score
-          </span>
-          <span>{retention}/100</span>
+      <div className={`${CARD} flex flex-col items-center gap-5 p-6 md:flex-row md:items-center md:gap-7`}>
+        <RetentionRing score={a.retention_score} />
+        <div className="flex-1 space-y-3">
+          <div className="flex items-center gap-2">
+            <Pill bg="#FFD93D">Weibull k = {a.weibull_shape_k ?? 0.7}</Pill>
+            <Pill>λ = {a.hook_strength_lambda}</Pill>
+          </div>
+          <p className="font-mono text-xs leading-relaxed text-black">
+            <span className="font-bold uppercase tracking-widest">Formula:</span>{" "}
+            <span className="border-2 border-black bg-secondary px-2 py-0.5">{a.weibull_formula_display}</span>
+          </p>
+          <div className="grid grid-cols-2 gap-3 pt-1">
+            <div className="border-2 border-black bg-white p-3 shadow-[3px_3px_0px_0px_#000000]">
+              <div className="font-mono text-[10px] font-bold uppercase tracking-widest text-black/70">
+                Hook Strength (λ)
+              </div>
+              <div className="mt-1 font-serif text-2xl font-bold text-black">{a.hook_strength_lambda}</div>
+            </div>
+            <div className="border-2 border-black bg-white p-3 shadow-[3px_3px_0px_0px_#000000]">
+              <div className="font-mono text-[10px] font-bold uppercase tracking-widest text-black/70">
+                Pacing Frequency
+              </div>
+              <div className="mt-1 font-serif text-2xl font-bold text-black">{a.pacing_frequency}</div>
+            </div>
+          </div>
         </div>
-        <div className="mt-3 h-5 w-full border-2 border-black bg-white">
-          <div
-            className="h-full border-r-2 border-black bg-[#00E5D1] transition-all"
-            style={{ width: `${retention}%` }}
-          />
-        </div>
-        <p className="mt-4 text-sm text-black">
-          <span className="font-bold">Estimated lift:</span> {a.watchTimeLift} · Filler{" "}
-          {a.fillerReduction}
-        </p>
       </div>
 
       <div className={`${CARD} p-5`}>
         <div className="flex items-center gap-2 font-mono text-[10px] font-bold uppercase tracking-widest text-black">
-          <AlertTriangle className="h-3.5 w-3.5" /> Viewer Drop Risk
+          <Activity className="h-3.5 w-3.5" /> Scale Parameter
         </div>
-        <div className="mt-3">
-          <span className="inline-flex items-center gap-2 border-2 border-black bg-[#FF5E5E] px-3 py-1.5 text-sm font-extrabold uppercase tracking-wider text-black shadow-[3px_3px_0px_0px_#000000]">
-            <Flame className="h-4 w-4" /> Drop Risk at Line {Math.min(a.replacements.length, Math.max(1, Math.round(a.dropOffRisk / 2)))} · {a.dropOffRisk}/10
-          </span>
+        <div className="mt-3 flex items-center justify-between font-mono text-xs text-black">
+          <span>Scale (λ)</span>
+          <span className="font-bold">{a.hook_strength_lambda} / 100</span>
         </div>
-        <p className="mt-4 text-sm leading-relaxed text-black">
-          <span className="font-bold">Fluff Diagnosis:</span> {a.fluffDiagnosis}
-        </p>
+        <div className="mt-2 h-5 w-full border-2 border-black bg-white">
+          <div
+            className="h-full border-r-2 border-black bg-[#00E5D1] transition-all"
+            style={{ width: `${a.hook_strength_lambda}%` }}
+          />
+        </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
-        <Pill bg="#00FF66">
-          <Languages className="h-3 w-3" /> {a.language}
-        </Pill>
-        <Pill>Platform: {a.platform}</Pill>
-        <Pill bg="#FFD93D">Style: {a.style}</Pill>
-        <Pill>{a.hookCount} new hooks</Pill>
-        <Pill>{a.cutCount} cuts</Pill>
+      <div className={`${CARD} p-5`} style={{ backgroundColor: "#FFE5E5" }}>
+        <div className="flex items-center gap-2 font-mono text-[10px] font-bold uppercase tracking-widest text-black">
+          <AlertTriangle className="h-3.5 w-3.5" /> Critical Weibull Alert
+        </div>
+        <div className="mt-3">
+          <span className="inline-flex items-center gap-2 border-2 border-black bg-[#FF5E5E] px-3 py-2 text-sm font-extrabold uppercase tracking-wider text-black shadow-[3px_3px_0px_0px_#000000]">
+            <AlertTriangle className="h-4 w-4" />
+            Critical Weibull Drop Risk Detected at Line {a.drop_risk_line} (Pacing Violation)
+          </span>
+        </div>
       </div>
     </div>
   );
 }
 
 function DoctorTab({ a }: { a: Analysis }) {
-  const [assembled, setAssembled] = useState(false);
   const [copied, setCopied] = useState(false);
-  const finalScript = a.replacements.map((r) => r.right).join("\n\n");
+  const finalScript = [
+    `HOOK: ${a.script_doctor.stronger_hook}`,
+    `BODY: ${a.script_doctor.emotional_rewrite}`,
+    `CTA:  ${a.script_doctor.cta_rewrite}`,
+  ].join("\n\n");
 
   const onCopy = async () => {
     try {
@@ -124,20 +172,20 @@ function DoctorTab({ a }: { a: Analysis }) {
     setTimeout(() => setCopied(false), 1500);
   };
 
-  const [hook, emotional, cta] = [
-    a.hooks[0],
-    a.hooks[1] ?? a.hooks[0],
-    a.hooks[2] ?? a.hooks[0],
+  const boxes = [
+    { label: "Stronger Hook", color: "#FFD93D", text: a.script_doctor.stronger_hook },
+    { label: "Emotional Rewrite", color: "#FF5E5E", text: a.script_doctor.emotional_rewrite },
+    { label: "CTA Rewrite", color: "#00FF66", text: a.script_doctor.cta_rewrite },
   ];
 
   return (
     <div className="space-y-6">
+      <div className="flex items-center gap-2">
+        <Stethoscope className="h-5 w-5 text-black" />
+        <h3 className="font-serif text-xl font-bold text-black">Script Doctor Rewrites</h3>
+      </div>
       <div className="grid gap-4 md:grid-cols-3">
-        {[
-          { label: "Stronger Hook", color: "#FFD93D", text: hook.text },
-          { label: "Emotional Rewrite", color: "#FF5E5E", text: emotional.text },
-          { label: "CTA Rewrite", color: "#00FF66", text: cta.text },
-        ].map((b) => (
+        {boxes.map((b) => (
           <div key={b.label} className={`${CARD} p-5`}>
             <span
               className="inline-block border-2 border-black px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-black"
@@ -150,75 +198,30 @@ function DoctorTab({ a }: { a: Analysis }) {
         ))}
       </div>
 
-      <div className="flex items-center gap-2 pt-2">
-        <Stethoscope className="h-5 w-5 text-black" />
-        <h3 className="font-serif text-xl font-bold text-black">Line-by-line replacements</h3>
+      <div className="border-2 border-black bg-white shadow-[6px_6px_0px_0px_#000000]">
+        <div className="flex items-center justify-between border-b-2 border-black bg-black px-4 py-2.5">
+          <span className="font-mono text-[10px] font-bold uppercase tracking-widest text-white">
+            final-script.txt
+          </span>
+          <button
+            onClick={onCopy}
+            className={BTN_SECONDARY}
+            style={{ backgroundColor: copied ? "#00FF66" : "#fff" }}
+          >
+            {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+            {copied ? "Copied!" : "Copy"}
+          </button>
+        </div>
+        <div className="max-h-[420px] overflow-y-auto p-5">
+          <pre className="whitespace-pre-wrap font-mono text-sm leading-relaxed text-black">
+            {finalScript}
+          </pre>
+        </div>
       </div>
-
-      <div className="space-y-5">
-        {a.replacements.map((r, i) => (
-          <div key={i} className="grid items-stretch gap-3 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
-            <div className="border-2 border-black bg-[#FF5E5E]/15 p-4 shadow-[4px_4px_0px_0px_#000000]">
-              <div className="mb-2 flex items-center justify-between">
-                <span className="font-mono text-[10px] font-bold uppercase tracking-widest text-black">
-                  Line {String(i + 1).padStart(2, "0")}
-                </span>
-                <span className="border-2 border-black bg-[#FF5E5E] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-black">
-                  Wrong / Fluffy
-                </span>
-              </div>
-              <p className="text-sm leading-snug text-black/80 line-through decoration-black/50">
-                {r.wrong}
-              </p>
-            </div>
-            <div className="flex items-center justify-center">
-              <div className="flex h-10 w-10 items-center justify-center border-2 border-black bg-[#00E5D1] shadow-[3px_3px_0px_0px_#000000]">
-                <ArrowRight className="hidden h-5 w-5 text-black md:block" />
-                <ArrowDown className="h-5 w-5 text-black md:hidden" />
-              </div>
-            </div>
-            <div className="border-2 border-black bg-[#00FF66]/30 p-4 shadow-[4px_4px_0px_0px_#000000]">
-              <div className="mb-2 flex items-center justify-between">
-                <span className="font-mono text-[10px] font-bold uppercase tracking-widest text-black">
-                  High-Retention
-                </span>
-                <span className="border-2 border-black bg-[#00FF66] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-black">
-                  Replaced With
-                </span>
-              </div>
-              <p className="text-sm font-semibold leading-snug text-black">{r.right}</p>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <div className="flex flex-col items-center pt-4">
-        <button onClick={() => setAssembled((v) => !v)} className={`${BTN_PRIMARY} px-8 py-4 text-base`}>
-          <FileText className="h-4 w-4" />
-          {assembled ? "Hide Consolidated Script" : "Generate Final Consolidated Script"}
-        </button>
-        {assembled && (
-          <div className="mt-6 w-full border-2 border-black bg-white shadow-[6px_6px_0px_0px_#000000]">
-            <div className="flex items-center justify-between border-b-2 border-black bg-black px-4 py-2.5">
-              <span className="font-mono text-[10px] font-bold uppercase tracking-widest text-white">
-                final-script.txt
-              </span>
-              <button
-                onClick={onCopy}
-                className={BTN_SECONDARY}
-                style={{ backgroundColor: copied ? "#00FF66" : "#fff" }}
-              >
-                {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-                {copied ? "Copied!" : "Copy"}
-              </button>
-            </div>
-            <div className="max-h-[420px] overflow-y-auto p-5">
-              <pre className="whitespace-pre-wrap font-mono text-sm leading-relaxed text-black">
-                {finalScript}
-              </pre>
-            </div>
-          </div>
-        )}
+      <div className="flex items-center justify-center pt-1">
+        <span className="inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
+          <FileText className="h-3 w-3" /> Teleprompter-ready
+        </span>
       </div>
     </div>
   );
@@ -232,7 +235,7 @@ function MatrixTab({ a }: { a: Analysis }) {
         <h3 className="font-serif text-xl font-bold text-black">Timestamped Production Matrix</h3>
       </div>
       <p className="text-sm text-muted-foreground">
-        Camera angles, B-roll, and pacing cues every 3–5 seconds.
+        Camera angles, B-roll, and pacing cues tuned to the Weibull retention curve.
       </p>
       <div className="overflow-hidden border-2 border-black">
         <div className="overflow-x-auto">
@@ -240,30 +243,27 @@ function MatrixTab({ a }: { a: Analysis }) {
             <thead className="bg-black text-xs uppercase tracking-widest text-white">
               <tr>
                 <th className="w-20 border-r-2 border-white/20 px-4 py-3 font-mono font-bold">Time</th>
-                <th className="border-r-2 border-white/20 px-4 py-3 font-mono font-bold">Line</th>
-                <th className="px-4 py-3 font-mono font-bold">Camera · B-roll · Pacing</th>
+                <th className="border-r-2 border-white/20 px-4 py-3 font-mono font-bold">Camera Angle</th>
+                <th className="border-r-2 border-white/20 px-4 py-3 font-mono font-bold">B-Roll Idea</th>
+                <th className="px-4 py-3 font-mono font-bold">Pacing Suggestion</th>
               </tr>
             </thead>
             <tbody>
-              {a.matrix.map((row, idx) => (
+              {a.editing_matrix.map((row, idx) => (
                 <tr
-                  key={`${row.time}-${idx}`}
+                  key={`${row.timestamp}-${idx}`}
                   className={`border-t-2 border-black ${idx % 2 === 0 ? "bg-white" : "bg-secondary"}`}
                 >
                   <td className="whitespace-nowrap border-r-2 border-black px-4 py-4 align-top">
                     <span className="inline-block border-2 border-black bg-[#FFD93D] px-2 py-0.5 font-mono text-xs font-bold text-black">
-                      {row.time}
+                      {row.timestamp}
                     </span>
                   </td>
-                  <td className="border-r-2 border-black px-4 py-4 align-top">
-                    <p className="font-medium text-black">{row.line}</p>
-                    {row.lineRoman && (
-                      <p className="mt-1 font-mono text-xs italic text-muted-foreground">
-                        {row.lineRoman}
-                      </p>
-                    )}
+                  <td className="border-r-2 border-black px-4 py-4 align-top font-medium text-black">
+                    {row.angle}
                   </td>
-                  <td className="px-4 py-4 align-top text-sm text-black">{row.directive}</td>
+                  <td className="border-r-2 border-black px-4 py-4 align-top text-black">{row.b_roll}</td>
+                  <td className="px-4 py-4 align-top text-black">{row.pacing}</td>
                 </tr>
               ))}
             </tbody>
@@ -319,8 +319,6 @@ export function Workspace() {
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({ error: res.statusText }));
-        if (res.status === 429) throw new Error("Rate limit reached — wait a moment and retry.");
-        if (res.status === 402) throw new Error("AI credits exhausted. Add credits in Workspace settings.");
         throw new Error(body.error || `Request failed (${res.status})`);
       }
       const data = (await res.json()) as Analysis;
@@ -338,15 +336,17 @@ export function Workspace() {
       <div className="mx-auto max-w-7xl px-5 py-10 lg:px-8 lg:py-12">
         <div className="mb-8">
           <Pill bg="#00FF66">
-            <span className="h-1.5 w-1.5 bg-black" /> Workspace Terminal
+            <span className="h-1.5 w-1.5 bg-black" /> Workspace Terminal · Weibull Engine
           </Pill>
           <h1 className="mt-4 font-serif text-4xl font-bold text-black md:text-5xl">
             Paste a script. Ship a banger.
           </h1>
+          <p className="mt-2 font-mono text-xs uppercase tracking-widest text-muted-foreground">
+            R(t) = e^(-(t / λ)^0.7) · early drop-off cliff locked
+          </p>
         </div>
 
         <div className="grid gap-6 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
-          {/* INPUT */}
           <section>
             <WindowPane title="input.txt" accent="#9FE7F5">
               <textarea
@@ -362,12 +362,11 @@ export function Workspace() {
                 className={`${BTN_PRIMARY} mt-4 w-full py-3.5 text-base`}
               >
                 {status === "loading" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                Analyze &amp; Optimize
+                Run Weibull Audit
               </button>
             </WindowPane>
           </section>
 
-          {/* OUTPUT */}
           <section>
             <WindowPane title="output.exe" accent="#FFD93D">
               {status === "idle" && !error && (
@@ -379,7 +378,7 @@ export function Workspace() {
                     Your blueprint will appear here
                   </h3>
                   <p className="mt-1 max-w-sm text-sm text-muted-foreground">
-                    Paste a raw script and analyze — Metrics, Doctor, and Matrix all on the right.
+                    Paste a raw script and run the Weibull audit — Metrics, Doctor, and Matrix on the right.
                   </p>
                 </div>
               )}
@@ -398,7 +397,7 @@ export function Workspace() {
                     <Loader2 className="h-10 w-10 animate-spin text-black" />
                   </div>
                   <p className="mt-5 font-mono text-sm font-bold uppercase tracking-wider text-black">
-                    Analyzing retention…
+                    Computing Weibull curve…
                   </p>
                 </div>
               )}
@@ -438,7 +437,7 @@ export function Workspace() {
         <div className="mt-6 flex items-center gap-2">
           <Zap className="h-4 w-4 text-black" />
           <span className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
-            Retention Engine · Workspace Terminal v1.0
+            Retention Engine · Weibull Workspace v1.0 · k=0.7
           </span>
         </div>
       </div>
