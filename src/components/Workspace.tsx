@@ -399,6 +399,36 @@ function escapeHtml(s: string) {
     .replace(/"/g, "&quot;");
 }
 
+function FullScriptCard({ script }: { script: string }) {
+  const [copied, setCopied] = useState(false);
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(script);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
+    } catch {
+      /* no-op */
+    }
+  };
+  if (!script) return null;
+  return (
+    <div className={`${CARD} mt-6 p-5`} style={{ backgroundColor: "#FFFDF5" }}>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <FileText className="h-5 w-5 text-black" />
+          <h3 className="font-serif text-lg font-bold text-black">Full Optimized Script</h3>
+        </div>
+        <button onClick={copy} className={BTN_PRIMARY}>
+          <Copy className="h-4 w-4" /> {copied ? "Copied!" : "Copy Entire Script"}
+        </button>
+      </div>
+      <pre className="mt-4 max-h-[420px] overflow-auto whitespace-pre-wrap border-2 border-black bg-white p-4 font-mono text-sm leading-relaxed text-black">
+        {script}
+      </pre>
+    </div>
+  );
+}
+
 function WindowPane({
   title,
   accent = "#FFD93D",
