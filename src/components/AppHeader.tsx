@@ -4,8 +4,8 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 const linkBase =
-  "px-3 py-1.5 border-2 border-black font-mono text-xs font-bold uppercase tracking-widest text-black bg-white shadow-[3px_3px_0px_0px_#000000] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0px_0px_#000000] transition-all";
-const linkActive = "bg-[#00E5D1]";
+  "px-3 py-1.5 border-2 border-black font-mono text-xs font-bold uppercase tracking-widest text-white bg-[#0B2545] shadow-[3px_3px_0px_0px_#000000] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0px_0px_#000000] transition-all";
+const linkActive = "bg-[#00E5D1] text-black";
 
 export function AppHeader() {
   const navigate = useNavigate();
@@ -25,10 +25,10 @@ export function AppHeader() {
   };
 
   return (
-    <header className="sticky top-0 z-40 border-b-2 border-black bg-[#FFD93D]">
+    <header className="sticky top-0 z-40 border-b-2 border-black bg-[#0B2545]">
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-3 lg:px-8">
         <Link to="/" className="flex items-center gap-2.5">
-          <span className="font-mono text-sm font-bold uppercase tracking-widest text-black">
+          <span className="font-mono text-sm font-bold uppercase tracking-widest text-white">
             ◤ LOOPLOCK
           </span>
         </Link>
