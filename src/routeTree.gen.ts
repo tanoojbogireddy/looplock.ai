@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ApiAnalyzeScriptRouteImport } from './routes/api/analyze-script'
 import { Route as ApiAnalyzeRouteImport } from './routes/api/analyze'
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
 import { Route as AuthenticatedAppRouteImport } from './routes/_authenticated/app'
@@ -28,6 +29,11 @@ const AuthenticatedRoute = AuthenticatedRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAnalyzeScriptRoute = ApiAnalyzeScriptRouteImport.update({
+  id: '/api/analyze-script',
+  path: '/api/analyze-script',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiAnalyzeRoute = ApiAnalyzeRouteImport.update({
@@ -52,6 +58,7 @@ export interface FileRoutesByFullPath {
   '/app': typeof AuthenticatedAppRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/api/analyze': typeof ApiAnalyzeRoute
+  '/api/analyze-script': typeof ApiAnalyzeScriptRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -59,6 +66,7 @@ export interface FileRoutesByTo {
   '/app': typeof AuthenticatedAppRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/api/analyze': typeof ApiAnalyzeRoute
+  '/api/analyze-script': typeof ApiAnalyzeScriptRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -68,12 +76,25 @@ export interface FileRoutesById {
   '/_authenticated/app': typeof AuthenticatedAppRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/api/analyze': typeof ApiAnalyzeRoute
+  '/api/analyze-script': typeof ApiAnalyzeScriptRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/login' | '/app' | '/profile' | '/api/analyze'
+  fullPaths:
+    | '/'
+    | '/login'
+    | '/app'
+    | '/profile'
+    | '/api/analyze'
+    | '/api/analyze-script'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/login' | '/app' | '/profile' | '/api/analyze'
+  to:
+    | '/'
+    | '/login'
+    | '/app'
+    | '/profile'
+    | '/api/analyze'
+    | '/api/analyze-script'
   id:
     | '__root__'
     | '/'
@@ -82,6 +103,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app'
     | '/_authenticated/profile'
     | '/api/analyze'
+    | '/api/analyze-script'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -89,6 +111,7 @@ export interface RootRouteChildren {
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   LoginRoute: typeof LoginRoute
   ApiAnalyzeRoute: typeof ApiAnalyzeRoute
+  ApiAnalyzeScriptRoute: typeof ApiAnalyzeScriptRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -112,6 +135,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/analyze-script': {
+      id: '/api/analyze-script'
+      path: '/api/analyze-script'
+      fullPath: '/api/analyze-script'
+      preLoaderRoute: typeof ApiAnalyzeScriptRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/analyze': {
@@ -157,6 +187,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
   LoginRoute: LoginRoute,
   ApiAnalyzeRoute: ApiAnalyzeRoute,
+  ApiAnalyzeScriptRoute: ApiAnalyzeScriptRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
