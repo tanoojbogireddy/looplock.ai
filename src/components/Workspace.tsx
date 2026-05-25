@@ -12,8 +12,6 @@ import {
   Printer,
   Lock,
   FileText,
-  MessageSquare,
-  Send,
 } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
@@ -615,8 +613,16 @@ function DoctorTab({
   strictness: Strictness;
   setStrictness: (s: Strictness) => void;
 }) {
+  const enrichedRows = rows.map((r) => buildDoctorRow(r));
   const copyAll = async () => {
-    const text = rows.map((r) => r.retaining_remedy).join("\n\n");
+    const text = enrichedRows
+      .map(
+        (row) =>
+          row.rewritten[strictness] ||
+          row.rewritten["Balanced"] ||
+          row.originalText,
+      )
+      .join("\n\n");
     try {
       await navigator.clipboard.writeText(text);
     } catch {
@@ -636,7 +642,7 @@ function DoctorTab({
           <div className="border-r-2 border-white/20 px-4 py-3 font-mono font-bold">Rewritten Line</div>
           <div className="px-4 py-3 font-mono font-bold">Why this works</div>
         </div>
-        {rows.map((row, idx) => (
+        {enrichedRows.map((row, idx) => (
           <div
             key={idx}
             className="grid grid-cols-[1fr_1fr_minmax(140px,0.7fr)] border-t-2 border-black first:border-t-0"
@@ -645,18 +651,26 @@ function DoctorTab({
               <div className="flex items-start gap-2">
                 <span className="text-base leading-none">❌</span>
                 <p className="text-sm leading-snug text-[#B30000] line-through decoration-[#FF1F1F] decoration-2">
-                  {row.flagged_weakness}
+                  {row.originalText}
                 </p>
               </div>
             </div>
             <div className="border-r-2 border-black bg-[#E5FFE9] p-4">
               <div className="flex items-start gap-2">
                 <span className="text-base leading-none">✅</span>
-                <p className="text-sm font-bold leading-snug text-[#005C1A]">{row.retaining_remedy}</p>
+                <p className="text-sm font-bold leading-snug text-[#005C1A]">
+                  {row.rewritten[strictness] ||
+                    row.rewritten["Balanced"] ||
+                    row.originalText}
+                </p>
               </div>
             </div>
             <div className="bg-white p-4">
-              <p className="text-xs leading-snug text-black">{row.why_it_works}</p>
+              <p className="text-xs leading-snug text-black">
+                {row.whyItWorks[strictness] ||
+                  row.whyItWorks["Balanced"] ||
+                  ""}
+              </p>
             </div>
           </div>
         ))}
