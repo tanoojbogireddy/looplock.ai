@@ -706,7 +706,7 @@ export function Workspace() {
           </p>
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
+        <div className={`grid gap-6 ${status === "done" && analysis ? "" : "lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]"}`}>
           <section>
             <WindowPane title="input.txt" accent="#9FE7F5">
               <textarea
@@ -768,6 +768,7 @@ export function Workspace() {
             </WindowPane>
           </section>
 
+          {status !== "done" && (
           <section>
             <WindowPane title="output.exe" accent="#FFD93D">
               {status === "idle" && !error && (
@@ -800,7 +801,16 @@ export function Workspace() {
                   </p>
                 </div>
               )}
-              {status === "done" && analysis && (
+            </WindowPane>
+          </section>
+          )}
+        </div>
+
+        {status === "done" && analysis && (
+          <section className="mt-6">
+            <WindowPane title="output.exe" accent="#FFD93D">
+              <div className="space-y-5">
+                <RetentionChartBlock a={analysis.analysis} script={script} />
                 <Tabs value={tab} onValueChange={setTab} className="w-full">
                   <TabsList className="mb-4 grid w-full grid-cols-3 gap-0 border-2 border-black bg-white p-0 shadow-[3px_3px_0px_0px_#000000] h-auto rounded-none">
                     {[
@@ -833,10 +843,10 @@ export function Workspace() {
                     <MatrixTab rows={analysis.editing_matrix} />
                   </TabsContent>
                 </Tabs>
-              )}
+              </div>
             </WindowPane>
           </section>
-        </div>
+        )}
 
         <div className="mt-6 flex items-center gap-2">
           <Zap className="h-4 w-4 text-black" />
