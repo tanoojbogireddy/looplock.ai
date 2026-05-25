@@ -815,14 +815,16 @@ export function Workspace() {
                   </TabsContent>
                   <TabsContent value="doctor">
                     <DoctorTab rows={analysis.script_doctor} />
+                    {analysis?.full_rewritten_script && (
+                      <div className="mt-5">
+                        <FullScriptCard script={analysis.full_rewritten_script} />
+                      </div>
+                    )}
                   </TabsContent>
                   <TabsContent value="matrix">
                     <MatrixTab rows={analysis.editing_matrix} />
                   </TabsContent>
                 </Tabs>
-              )}
-              {status === "done" && analysis?.full_rewritten_script && (
-                <FullScriptCard script={analysis.full_rewritten_script} />
               )}
             </WindowPane>
           </section>
