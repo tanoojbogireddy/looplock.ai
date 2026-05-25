@@ -1154,10 +1154,6 @@ export function Workspace() {
           </section>
         )}
 
-        <section className="mt-6">
-          <ChatAssistant />
-        </section>
-
         <div className="mt-6 flex items-center gap-2">
           <Zap className="h-4 w-4 text-black" />
           <span className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
