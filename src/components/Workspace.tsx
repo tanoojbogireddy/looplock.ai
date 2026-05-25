@@ -709,9 +709,8 @@ export function Workspace() {
           </p>
         </div>
 
-        <div className={`grid gap-6 ${status === "done" && analysis ? "" : "lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]"}`}>
-          <section>
-            <WindowPane title="input.txt" accent="#9FE7F5">
+        <section>
+          <WindowPane title="input.txt" accent="#9FE7F5">
               <textarea
                 value={script}
                 onChange={(e) => setScript(e.target.value)}
@@ -768,25 +767,25 @@ export function Workspace() {
                   </button>
                 </div>
               )}
-            </WindowPane>
-          </section>
+          </WindowPane>
+        </section>
 
-          {status !== "done" && (
-          <section>
+        {status !== "done" && (
+          <section className="mt-6">
             <WindowPane title="output.exe" accent="#FFD93D">
               {status === "idle" && !error && (
-                <div className="flex h-[480px] flex-col items-center justify-center text-center">
+                <div className="flex h-[280px] flex-col items-center justify-center text-center">
                   <div className="flex h-16 w-16 items-center justify-center border-2 border-black bg-[#00FF66] shadow-[4px_4px_0px_0px_#000000]">
                     <Sparkles className="h-7 w-7 text-black" />
                   </div>
                   <h3 className="mt-5 font-serif text-xl font-bold text-black">Your blueprint will appear here</h3>
                   <p className="mt-1 max-w-sm text-sm text-muted-foreground">
-                    Paste a raw script and run the audit — Analysis, Script Doctor, and Editing Matrix on the right.
+                    Paste a raw script and run the audit — Analysis, Script Doctor, and Editing Matrix unlock below.
                   </p>
                 </div>
               )}
               {status === "idle" && error && (
-                <div className="flex h-[480px] flex-col items-center justify-center text-center">
+                <div className="flex h-[280px] flex-col items-center justify-center text-center">
                   <div className="flex h-14 w-14 items-center justify-center border-2 border-black bg-[#FF5E5E] shadow-[4px_4px_0px_0px_#000000]">
                     <AlertTriangle className="h-7 w-7 text-black" />
                   </div>
@@ -795,7 +794,7 @@ export function Workspace() {
                 </div>
               )}
               {status === "loading" && (
-                <div className="flex h-[480px] flex-col items-center justify-center text-center">
+                <div className="flex h-[280px] flex-col items-center justify-center text-center">
                   <div className="border-2 border-black bg-[#FFD93D] p-5 shadow-[4px_4px_0px_0px_#000000]">
                     <Loader2 className="h-10 w-10 animate-spin text-black" />
                   </div>
@@ -806,48 +805,48 @@ export function Workspace() {
               )}
             </WindowPane>
           </section>
-          )}
-        </div>
+        )}
 
         {status === "done" && analysis && (
           <section className="mt-6">
-            <WindowPane title="output.exe" accent="#FFD93D">
-              <div className="space-y-5">
-                <RetentionChartBlock a={analysis.analysis} script={script} />
-                <Tabs value={tab} onValueChange={setTab} className="w-full">
-                  <TabsList className="mb-4 grid w-full grid-cols-3 gap-0 border-2 border-black bg-white p-0 shadow-[3px_3px_0px_0px_#000000] h-auto rounded-none">
-                    {[
-                      { v: "analysis", l: "Analysis", icon: Gauge },
-                      { v: "doctor", l: "Script Doctor", icon: Stethoscope },
-                      { v: "matrix", l: "Editing Matrix", icon: Scissors },
-                    ].map((t) => (
-                      <TabsTrigger
-                        key={t.v}
-                        value={t.v}
-                        className="rounded-none border-r-2 border-black px-3 py-2.5 text-xs font-bold uppercase tracking-widest text-black data-[state=active]:bg-[#00E5D1] data-[state=active]:shadow-none last:border-r-0"
-                      >
-                        <t.icon className="mr-1.5 h-3.5 w-3.5" />
-                        {t.l}
-                      </TabsTrigger>
-                    ))}
-                  </TabsList>
-                  <TabsContent value="analysis">
-                    <AnalysisTab a={analysis.analysis} script={script} onJumpToDoctor={() => setTab("doctor")} />
-                  </TabsContent>
-                  <TabsContent value="doctor">
-                    <DoctorTab rows={analysis.script_doctor} />
-                    {analysis?.full_rewritten_script && (
-                      <div className="mt-5">
-                        <FullScriptCard script={analysis.full_rewritten_script} />
-                      </div>
-                    )}
-                  </TabsContent>
-                  <TabsContent value="matrix">
-                    <MatrixTab rows={analysis.editing_matrix} />
-                  </TabsContent>
-                </Tabs>
-              </div>
-            </WindowPane>
+            <Tabs value={tab} onValueChange={setTab} className="w-full">
+              <TabsList className="mb-6 grid w-full grid-cols-3 gap-0 border-2 border-black bg-white p-0 shadow-[6px_6px_0px_0px_#000000] h-auto rounded-none">
+                {[
+                  { v: "analysis", l: "Analysis", icon: Gauge },
+                  { v: "doctor", l: "Script Doctor", icon: Stethoscope },
+                  { v: "matrix", l: "Editing Matrix", icon: Scissors },
+                ].map((t) => (
+                  <TabsTrigger
+                    key={t.v}
+                    value={t.v}
+                    className="rounded-none border-r-2 border-black px-3 py-3.5 text-sm font-bold uppercase tracking-widest text-black data-[state=active]:bg-[#00E5D1] data-[state=active]:shadow-none last:border-r-0"
+                  >
+                    <t.icon className="mr-1.5 h-4 w-4" />
+                    {t.l}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+              <TabsContent value="analysis">
+                <WindowPane title="analysis.exe" accent="#FFD93D">
+                  <AnalysisTab a={analysis.analysis} script={script} onJumpToDoctor={() => setTab("doctor")} />
+                </WindowPane>
+              </TabsContent>
+              <TabsContent value="doctor">
+                <WindowPane title="script-doctor.exe" accent="#FFD93D">
+                  <DoctorTab rows={analysis.script_doctor} />
+                  {analysis?.full_rewritten_script && (
+                    <div className="mt-5">
+                      <FullScriptCard script={analysis.full_rewritten_script} />
+                    </div>
+                  )}
+                </WindowPane>
+              </TabsContent>
+              <TabsContent value="matrix">
+                <WindowPane title="editing-matrix.exe" accent="#FFD93D">
+                  <MatrixTab rows={analysis.editing_matrix} />
+                </WindowPane>
+              </TabsContent>
+            </Tabs>
           </section>
         )}
 
