@@ -12,8 +12,6 @@ import {
   Printer,
   Lock,
   FileText,
-  MessageSquare,
-  Send,
 } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
@@ -606,6 +604,51 @@ function StrictnessPicker({
   );
 }
 
+type DoctorRow = {
+  originalText: string;
+  rewritten: Record<Strictness, string>;
+  whyItWorks: Record<Strictness, string>;
+};
+
+function buildDoctorRow(r: Analysis["script_doctor"][number]): DoctorRow {
+  const original = r.flagged_weakness ?? "";
+  const base = (r.retaining_remedy ?? "").trim();
+  const filler =
+    /\b(basically|honestly|literally|actually|like,|you know|kind of|sort of|just|really|very|so,)\b/gi;
+  const trimOnly = (base || original)
+    .replace(filler, "")
+    .replace(/\s{2,}/g, " ")
+    .replace(/\s+([,.!?])/g, "$1")
+    .trim();
+  const balanced = base || trimOnly;
+  // Hyper-Short: keep first clause / first ~8 words, punchy ending
+  const firstClause = (base || trimOnly).split(/[,.;:!?]/)[0]?.trim() ?? base;
+  const words = firstClause.split(/\s+/).filter(Boolean);
+  const hyperBase = words.slice(0, 8).join(" ").trim();
+  const hyperShort = hyperBase
+    ? /[.!?]$/.test(hyperBase)
+      ? hyperBase
+      : `${hyperBase}.`
+    : balanced;
+  return {
+    originalText: original,
+    rewritten: {
+      "Trim Only": trimOnly || balanced || original,
+      Balanced: balanced || original,
+      "Hyper-Short": hyperShort || balanced || original,
+    },
+    whyItWorks: {
+      "Trim Only":
+        "Maintains original tone while purging low-value filler words.",
+      Balanced:
+        r.why_it_works ||
+        "Optimizes sentence length to hit an energetic 145 WPM cadence.",
+      "Hyper-Short":
+        "Maximum compression. Formatted explicitly for fast-paced pattern interrupts.",
+    },
+  };
+}
+
 function DoctorTab({
   rows,
   strictness,
@@ -615,8 +658,16 @@ function DoctorTab({
   strictness: Strictness;
   setStrictness: (s: Strictness) => void;
 }) {
+  const enrichedRows = rows.map((r) => buildDoctorRow(r));
   const copyAll = async () => {
-    const text = rows.map((r) => r.retaining_remedy).join("\n\n");
+    const text = enrichedRows
+      .map(
+        (row) =>
+          row.rewritten[strictness] ||
+          row.rewritten["Balanced"] ||
+          row.originalText,
+      )
+      .join("\n\n");
     try {
       await navigator.clipboard.writeText(text);
     } catch {
@@ -636,7 +687,7 @@ function DoctorTab({
           <div className="border-r-2 border-white/20 px-4 py-3 font-mono font-bold">Rewritten Line</div>
           <div className="px-4 py-3 font-mono font-bold">Why this works</div>
         </div>
-        {rows.map((row, idx) => (
+        {enrichedRows.map((row, idx) => (
           <div
             key={idx}
             className="grid grid-cols-[1fr_1fr_minmax(140px,0.7fr)] border-t-2 border-black first:border-t-0"
@@ -645,18 +696,26 @@ function DoctorTab({
               <div className="flex items-start gap-2">
                 <span className="text-base leading-none">❌</span>
                 <p className="text-sm leading-snug text-[#B30000] line-through decoration-[#FF1F1F] decoration-2">
-                  {row.flagged_weakness}
+                  {row.originalText}
                 </p>
               </div>
             </div>
             <div className="border-r-2 border-black bg-[#E5FFE9] p-4">
               <div className="flex items-start gap-2">
                 <span className="text-base leading-none">✅</span>
-                <p className="text-sm font-bold leading-snug text-[#005C1A]">{row.retaining_remedy}</p>
+                <p className="text-sm font-bold leading-snug text-[#005C1A]">
+                  {row.rewritten[strictness] ||
+                    row.rewritten["Balanced"] ||
+                    row.originalText}
+                </p>
               </div>
             </div>
             <div className="bg-white p-4">
-              <p className="text-xs leading-snug text-black">{row.why_it_works}</p>
+              <p className="text-xs leading-snug text-black">
+                {row.whyItWorks[strictness] ||
+                  row.whyItWorks["Balanced"] ||
+                  ""}
+              </p>
             </div>
           </div>
         ))}
@@ -853,90 +912,6 @@ function WindowPane({
   );
 }
 
-function ChatAssistant() {
-  type Msg = { role: "user" | "assistant"; text: string; alert?: boolean };
-  const [msgs, setMsgs] = useState<Msg[]>([
-    {
-      role: "assistant",
-      text:
-        "Hey! Paste a draft or ask a question. I keep replies tight — short-form scripts must stay under 600 words.",
-    },
-  ]);
-  const [draft, setDraft] = useState("");
-  const send = () => {
-    const text = draft.trim();
-    if (!text) return;
-    const chatScriptWordCount = wordCount(text);
-    if (chatScriptWordCount > WORD_LIMIT) {
-      setMsgs((m) => [
-        ...m,
-        { role: "user", text },
-        {
-          role: "assistant",
-          alert: true,
-          text: `⚠️ This script contains ${chatScriptWordCount} words, which exceeds our 600-word short-form optimization ceiling. Please shorten the text so we can accurately maximize your viewer retention graph!`,
-        },
-      ]);
-      setDraft("");
-      return;
-    }
-    setMsgs((m) => [
-      ...m,
-      { role: "user", text },
-      {
-        role: "assistant",
-        text: "Got it — drop the full script into INPUT.TXT above and hit Analyze for a full retention audit.",
-      },
-    ]);
-    setDraft("");
-  };
-  return (
-    <WindowPane title="assistant.chat" accent="#9FE7F5">
-      <div className="flex items-center gap-2">
-        <MessageSquare className="h-5 w-5 text-black" />
-        <h3 className="font-serif text-lg font-bold text-black">AI Chat Assistant</h3>
-      </div>
-      <div className="mt-3 max-h-72 space-y-2 overflow-auto border-2 border-black bg-white p-3">
-        {msgs.map((m, i) =>
-          m.alert ? (
-            <div
-              key={i}
-              className="border-2 border-black bg-[#FF6B6B] p-3 font-mono text-xs font-extrabold uppercase tracking-wider text-black shadow-[3px_3px_0px_0px_#000]"
-            >
-              {m.text}
-            </div>
-          ) : (
-            <div
-              key={i}
-              className={`max-w-[85%] border-2 border-black px-3 py-2 text-sm font-semibold text-black shadow-[2px_2px_0px_0px_#000] ${
-                m.role === "user" ? "ml-auto bg-[#00E5D1]" : "bg-white"
-              }`}
-            >
-              {m.text}
-            </div>
-          ),
-        )}
-      </div>
-      <div className="mt-3 flex gap-2">
-        <input
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") send();
-          }}
-          placeholder="Ask the assistant or paste a snippet…"
-          className="flex-1 border-2 border-black bg-white px-3 py-2 font-mono text-sm text-black focus:outline-none"
-        />
-        <button onClick={send} className={BTN_PRIMARY}>
-          <Send className="h-4 w-4" /> Send
-        </button>
-      </div>
-      <div className="mt-2 font-mono text-[10px] uppercase tracking-widest text-black/60">
-        Pasted scripts are auto-scanned · 600-word ceiling enforced
-      </div>
-    </WindowPane>
-  );
-}
 
 export function Workspace() {
   const [script, setScript] = useState("");
@@ -1178,10 +1153,6 @@ export function Workspace() {
             </Tabs>
           </section>
         )}
-
-        <section className="mt-6">
-          <ChatAssistant />
-        </section>
 
         <div className="mt-6 flex items-center gap-2">
           <Zap className="h-4 w-4 text-black" />
