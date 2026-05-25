@@ -12,6 +12,8 @@ import {
   Printer,
   Lock,
   FileText,
+  MessageSquare,
+  Send,
 } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
@@ -52,6 +54,26 @@ const CARD = "border-2 border-black bg-white shadow-[6px_6px_0px_0px_#000000]";
 const PANE = "border-2 border-black bg-white shadow-[8px_8px_0px_0px_#000000]";
 const BTN_PRIMARY =
   "inline-flex items-center justify-center gap-2 border-2 border-black bg-[#00E5D1] px-5 py-3 text-sm font-extrabold uppercase tracking-wider text-black shadow-[4px_4px_0px_0px_#000000] transition-all hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_#000000] disabled:cursor-not-allowed disabled:opacity-70";
+
+export const WORD_LIMIT = 600;
+
+export type Strictness = "Trim Only" | "Balanced" | "Hyper-Short";
+
+export function getStrictnessConfig(s: Strictness) {
+  switch (s) {
+    case "Trim Only":
+      return { reductionPct: 12, wpm: 135, wpmLabel: "135 WPM (Cinematic Pacing)" };
+    case "Hyper-Short":
+      return { reductionPct: 59, wpm: 160, wpmLabel: "160 WPM (Retention-Max Velocity)" };
+    case "Balanced":
+    default:
+      return { reductionPct: 28, wpm: 145, wpmLabel: "145 WPM (Energetic Storytelling)" };
+  }
+}
+
+export function wordCount(text: string): number {
+  return text ? text.trim().split(/\s+/).filter(Boolean).length : 0;
+}
 
 function Pill({ children, bg = "#FFFFFF" }: { children: React.ReactNode; bg?: string }) {
   return (
@@ -231,18 +253,22 @@ function AnalysisTab({
   a,
   script,
   onJumpToDoctor,
+  strictness,
 }: {
   a: Analysis["analysis"];
   script: string;
   onJumpToDoctor: () => void;
+  strictness: Strictness;
 }) {
   const score = Math.max(1, Math.min(10, Math.round(a.video_score)));
   const scoreColor = score < 5 ? "#FF5E5E" : score <= 7 ? "#FFB627" : "#00C853";
   const metrics = computeScriptMetrics(a, script);
-  const { leaks, totalWords, avgPacing } = metrics;
-  type Leak = (typeof leaks)[number];
-  const optimizedWords = Math.round(totalWords * 0.6);
+  const { leaks } = metrics;
+  const cfg = getStrictnessConfig(strictness);
+  const totalWords = wordCount(script);
+  const optimizedWords = Math.max(0, Math.round(totalWords * (1 - cfg.reductionPct / 100)));
   const trimPct = totalWords > 0 ? Math.round(((totalWords - optimizedWords) / totalWords) * 100) : 0;
+  type Leak = (typeof leaks)[number];
   return (
     <div className="space-y-5">
       {/* Score */}
@@ -272,7 +298,7 @@ function AnalysisTab({
       </div>
 
       {/* Retention chart + stats */}
-      <RetentionChartBlock a={a} script={script} />
+      <RetentionChartBlock a={a} script={script} strictness={strictness} />
 
       {/* Plain cards */}
       <div className="grid gap-5 md:grid-cols-2">
@@ -297,7 +323,7 @@ function AnalysisTab({
             </ul>
           )}
           <div className="mt-3 inline-block border-2 border-black bg-white px-2 py-1 font-mono text-[10px] font-bold uppercase tracking-widest text-black shadow-[2px_2px_0px_0px_#000]">
-            Original Pace: {avgPacing} WPM
+            Original Pace: {metrics.avgPacing} WPM
           </div>
         </div>
         <div className={`${CARD} p-5`} style={{ backgroundColor: "#CFFFD7" }}>
@@ -311,7 +337,7 @@ function AnalysisTab({
             <li>• Script compressed by {trimPct}%</li>
           </ul>
           <div className="mt-3 inline-block border-2 border-black bg-white px-2 py-1 font-mono text-[10px] font-bold uppercase tracking-widest text-black shadow-[2px_2px_0px_0px_#000]">
-            Suggested Target Pacing: 145 - 160 WPM (Conversational Speed)
+            Suggested Target Pacing: {cfg.wpmLabel}
           </div>
         </div>
       </div>
@@ -328,12 +354,15 @@ function AnalysisTab({
 function RetentionChartBlock({
   a,
   script,
+  strictness,
 }: {
   a: Analysis["analysis"];
   script: string;
+  strictness: Strictness;
 }) {
   // Build dynamic per-sentence dataset
-  const WPM = 140;
+  const cfg = getStrictnessConfig(strictness);
+  const WPM = cfg.wpm;
   const sentences = (script || "")
     .split(/(?<=[.?!…])\s+|\n+/)
     .map((s) => s.trim())
@@ -404,12 +433,16 @@ function RetentionChartBlock({
     };
   });
 
-  const totalWords = sentences.reduce(
-    (n, s) => n + (s.split(/\s+/).filter(Boolean).length || 0),
-    0,
+  const totalWords = wordCount(script);
+  const optimizedWords = Math.max(
+    1,
+    Math.round(totalWords * (1 - cfg.reductionPct / 100)),
   );
-  const totalDuration = data.length ? Math.max(30, data[data.length - 1].second + 1) : 30;
-  const avgPacing = totalDuration > 0 ? Math.round((totalWords / totalDuration) * 60) : WPM;
+  const trueDurationInSeconds = Math.max(
+    1,
+    Math.round((optimizedWords / cfg.wpm) * 60),
+  );
+  const avgPacing = cfg.wpm;
   const leakCount = data.filter((d) => d.isLeakWarning).length;
 
   const ChartTooltip = ({ active, payload }: { active?: boolean; payload?: Array<{ payload: Pt }> }) => {
@@ -475,7 +508,7 @@ function RetentionChartBlock({
               <XAxis
                 dataKey="second"
                 type="number"
-                domain={[0, Math.ceil(totalDuration)]}
+                domain={[0, trueDurationInSeconds]}
                 tick={{ fontFamily: "monospace", fontSize: 10, fill: "#000" }}
                 stroke="#000"
                 tickFormatter={(v) => `${v}s`}
@@ -529,7 +562,59 @@ function RetentionChartBlock({
   );
 }
 
-function DoctorTab({ rows }: { rows: Analysis["script_doctor"] }) {
+function StrictnessPicker({
+  value,
+  onChange,
+}: {
+  value: Strictness;
+  onChange: (v: Strictness) => void;
+}) {
+  const opts: { v: Strictness; bg: string }[] = [
+    { v: "Trim Only", bg: "#FFD93D" },
+    { v: "Balanced", bg: "#00E5D1" },
+    { v: "Hyper-Short", bg: "#FF5E5E" },
+  ];
+  return (
+    <div className={`${CARD} p-4`} style={{ backgroundColor: "#FFFDF5" }}>
+      <div className="font-mono text-[11px] font-bold uppercase tracking-widest text-black">
+        Optimization Strictness
+      </div>
+      <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-3">
+        {opts.map((o) => {
+          const active = value === o.v;
+          return (
+            <button
+              key={o.v}
+              type="button"
+              onClick={() => onChange(o.v)}
+              className={`border-2 border-black px-3 py-3 font-mono text-xs font-extrabold uppercase tracking-widest text-black transition-all ${
+                active
+                  ? "shadow-[4px_4px_0px_0px_#000] translate-x-0 translate-y-0"
+                  : "bg-white shadow-[2px_2px_0px_0px_#000] hover:translate-x-[1px] hover:translate-y-[1px]"
+              }`}
+              style={active ? { backgroundColor: o.bg } : undefined}
+            >
+              {o.v}
+            </button>
+          );
+        })}
+      </div>
+      <div className="mt-3 font-mono text-[10px] uppercase tracking-widest text-black/70">
+        Active: {getStrictnessConfig(value).wpmLabel} · Target Trim {getStrictnessConfig(value).reductionPct}%
+      </div>
+    </div>
+  );
+}
+
+function DoctorTab({
+  rows,
+  strictness,
+  setStrictness,
+}: {
+  rows: Analysis["script_doctor"];
+  strictness: Strictness;
+  setStrictness: (s: Strictness) => void;
+}) {
   const copyAll = async () => {
     const text = rows.map((r) => r.retaining_remedy).join("\n\n");
     try {
@@ -540,6 +625,7 @@ function DoctorTab({ rows }: { rows: Analysis["script_doctor"] }) {
   };
   return (
     <div className="space-y-5">
+      <StrictnessPicker value={strictness} onChange={setStrictness} />
       <div className="flex items-center gap-2">
         <Stethoscope className="h-5 w-5 text-black" />
         <h3 className="font-serif text-xl font-bold text-black">Fix My Script</h3>
@@ -590,13 +676,37 @@ function secondsToStamp(s: number) {
   return `${m}:${String(sec).padStart(2, "0")}`;
 }
 
-function MatrixTab({ rows }: { rows: Analysis["editing_matrix"] }) {
-  const WPM = 140;
+function MatrixTab({
+  rows,
+  strictness,
+  optimizedWords,
+}: {
+  rows: Analysis["editing_matrix"];
+  strictness: Strictness;
+  optimizedWords: number;
+}) {
+  const cfg = getStrictnessConfig(strictness);
+  const trueDurationInSeconds = Math.max(
+    1,
+    Math.round((Math.max(1, optimizedWords) / cfg.wpm) * 60),
+  );
+  // Strictness-driven interval band: Hyper-Short 2-4s, Balanced 4-7s, Trim Only 7-10s
+  const band =
+    strictness === "Hyper-Short"
+      ? { min: 2, max: 4 }
+      : strictness === "Trim Only"
+        ? { min: 7, max: 10 }
+        : { min: 4, max: 7 };
+  const n = Math.max(rows.length, 1);
+  // ideal evenly-spaced interval so the last stamp ≈ trueDurationInSeconds
+  const idealInterval = trueDurationInSeconds / n;
+  const interval = Math.max(band.min, Math.min(band.max, idealInterval));
   let cursor = 0;
-  const enriched = rows.map((row) => {
-    const stamp = secondsToStamp(cursor);
-    const words = row.corrected_line.trim().split(/\s+/).filter(Boolean).length;
-    cursor += (words / WPM) * 60;
+  const enriched = rows.map((row, i) => {
+    // last row snapped to trueDurationInSeconds
+    const t = i === rows.length - 1 ? trueDurationInSeconds : cursor;
+    const stamp = secondsToStamp(t);
+    cursor += interval;
     const technique =
       row.editing_technique?.trim() ||
       `${row.camera_framing} + ${row.b_roll_sound_fx}`;
@@ -640,7 +750,8 @@ function MatrixTab({ rows }: { rows: Analysis["editing_matrix"] }) {
         <h3 className="font-serif text-xl font-bold text-black">Editor Briefing</h3>
       </div>
       <p className="text-sm text-muted-foreground">
-        Hand this directly to your editor. Timestamps are calculated at 140 words per minute.
+        Hand this directly to your editor. Timestamps scaled for {cfg.wpmLabel} ·
+        final cue lands at {secondsToStamp(trueDurationInSeconds)}.
       </p>
       <div className="overflow-hidden border-2 border-black shadow-[6px_6px_0px_0px_#000000]">
         <div className="overflow-x-auto">
@@ -742,19 +853,113 @@ function WindowPane({
   );
 }
 
+function ChatAssistant() {
+  type Msg = { role: "user" | "assistant"; text: string; alert?: boolean };
+  const [msgs, setMsgs] = useState<Msg[]>([
+    {
+      role: "assistant",
+      text:
+        "Hey! Paste a draft or ask a question. I keep replies tight — short-form scripts must stay under 600 words.",
+    },
+  ]);
+  const [draft, setDraft] = useState("");
+  const send = () => {
+    const text = draft.trim();
+    if (!text) return;
+    const chatScriptWordCount = wordCount(text);
+    if (chatScriptWordCount > WORD_LIMIT) {
+      setMsgs((m) => [
+        ...m,
+        { role: "user", text },
+        {
+          role: "assistant",
+          alert: true,
+          text: `⚠️ This script contains ${chatScriptWordCount} words, which exceeds our 600-word short-form optimization ceiling. Please shorten the text so we can accurately maximize your viewer retention graph!`,
+        },
+      ]);
+      setDraft("");
+      return;
+    }
+    setMsgs((m) => [
+      ...m,
+      { role: "user", text },
+      {
+        role: "assistant",
+        text: "Got it — drop the full script into INPUT.TXT above and hit Analyze for a full retention audit.",
+      },
+    ]);
+    setDraft("");
+  };
+  return (
+    <WindowPane title="assistant.chat" accent="#9FE7F5">
+      <div className="flex items-center gap-2">
+        <MessageSquare className="h-5 w-5 text-black" />
+        <h3 className="font-serif text-lg font-bold text-black">AI Chat Assistant</h3>
+      </div>
+      <div className="mt-3 max-h-72 space-y-2 overflow-auto border-2 border-black bg-white p-3">
+        {msgs.map((m, i) =>
+          m.alert ? (
+            <div
+              key={i}
+              className="border-2 border-black bg-[#FF6B6B] p-3 font-mono text-xs font-extrabold uppercase tracking-wider text-black shadow-[3px_3px_0px_0px_#000]"
+            >
+              {m.text}
+            </div>
+          ) : (
+            <div
+              key={i}
+              className={`max-w-[85%] border-2 border-black px-3 py-2 text-sm font-semibold text-black shadow-[2px_2px_0px_0px_#000] ${
+                m.role === "user" ? "ml-auto bg-[#00E5D1]" : "bg-white"
+              }`}
+            >
+              {m.text}
+            </div>
+          ),
+        )}
+      </div>
+      <div className="mt-3 flex gap-2">
+        <input
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") send();
+          }}
+          placeholder="Ask the assistant or paste a snippet…"
+          className="flex-1 border-2 border-black bg-white px-3 py-2 font-mono text-sm text-black focus:outline-none"
+        />
+        <button onClick={send} className={BTN_PRIMARY}>
+          <Send className="h-4 w-4" /> Send
+        </button>
+      </div>
+      <div className="mt-2 font-mono text-[10px] uppercase tracking-widest text-black/60">
+        Pasted scripts are auto-scanned · 600-word ceiling enforced
+      </div>
+    </WindowPane>
+  );
+}
+
 export function Workspace() {
   const [script, setScript] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "done">("idle");
   const [analysis, setAnalysis] = useState<Analysis | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<string>("analysis");
+  const [strictness, setStrictness] = useState<Strictness>("Balanced");
   const FREE_LIMIT = 3;
   const [creditsRemaining, setCreditsRemaining] = useState<number>(FREE_LIMIT);
   const outOfCredits = creditsRemaining <= 0;
+  const currentWordCount = wordCount(script);
+  const isOverLimit = currentWordCount > WORD_LIMIT;
+  const cfg = getStrictnessConfig(strictness);
+  const optimizedWordCount = Math.max(
+    0,
+    Math.round(currentWordCount * (1 - cfg.reductionPct / 100)),
+  );
 
   const onAnalyze = async () => {
     if (!script.trim()) return;
     if (outOfCredits) return;
+    if (isOverLimit) return;
     setStatus("loading");
     setError(null);
     try {
@@ -806,19 +1011,42 @@ export function Workspace() {
                 rows={16}
                 className="w-full resize-none border-2 border-black bg-white p-4 font-mono text-sm leading-relaxed text-black placeholder:text-muted-foreground focus:outline-none"
               />
+              <div className="mt-2 flex flex-wrap items-center justify-between gap-2 font-mono text-[11px] font-bold uppercase tracking-widest text-black">
+                <span className="inline-flex items-center gap-2 border-2 border-black bg-white px-2 py-1 shadow-[2px_2px_0px_0px_#000]">
+                  Total Words
+                  <span className={`border-2 border-black px-1.5 ${isOverLimit ? "bg-[#FF6B6B]" : "bg-[#00E5D1]"}`}>
+                    {currentWordCount}
+                  </span>
+                  <span className="text-black/60">/ {WORD_LIMIT}</span>
+                </span>
+              </div>
+              {isOverLimit && (
+                <div
+                  className="mt-3 border-2 border-black p-3 font-mono text-xs font-extrabold uppercase tracking-wider text-black shadow-[4px_4px_0px_0px_#000]"
+                  style={{ backgroundColor: "#FF6B6B" }}
+                >
+                  ⚠️ SCRIPT LENGTH EXCEEDED: {currentWordCount} / {WORD_LIMIT} Words Max. Please trim your draft to optimize for high-retention short-form video.
+                </div>
+              )}
               <button
                 onClick={onAnalyze}
-                disabled={status === "loading" || !script.trim() || outOfCredits}
+                disabled={status === "loading" || !script.trim() || outOfCredits || isOverLimit}
                 className={`${BTN_PRIMARY} mt-4 w-full py-3.5 text-base`}
               >
                 {status === "loading" ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : outOfCredits ? (
                   <Lock className="h-4 w-4" />
+                ) : isOverLimit ? (
+                  <AlertTriangle className="h-4 w-4" />
                 ) : (
                   <Sparkles className="h-4 w-4" />
                 )}
-                {outOfCredits ? "Free Credits Used Up" : "Analyze My Script ➔ See Results"}
+                {outOfCredits
+                  ? "Free Credits Used Up"
+                  : isOverLimit
+                    ? "Trim Below 600 Words to Analyze"
+                    : "Analyze My Script ➔ See Results"}
               </button>
               {outOfCredits && (
                 <div
@@ -916,12 +1144,21 @@ export function Workspace() {
               </TabsList>
               <TabsContent value="analysis">
                 <WindowPane title="analysis.exe" accent="#FFD93D">
-                  <AnalysisTab a={analysis.analysis} script={script} onJumpToDoctor={() => setTab("doctor")} />
+                  <AnalysisTab
+                    a={analysis.analysis}
+                    script={script}
+                    onJumpToDoctor={() => setTab("doctor")}
+                    strictness={strictness}
+                  />
                 </WindowPane>
               </TabsContent>
               <TabsContent value="doctor">
                 <WindowPane title="script-doctor.exe" accent="#FFD93D">
-                  <DoctorTab rows={analysis.script_doctor} />
+                  <DoctorTab
+                    rows={analysis.script_doctor}
+                    strictness={strictness}
+                    setStrictness={setStrictness}
+                  />
                   {analysis?.full_rewritten_script && (
                     <div className="mt-5">
                       <FullScriptCard script={analysis.full_rewritten_script} />
@@ -931,12 +1168,20 @@ export function Workspace() {
               </TabsContent>
               <TabsContent value="matrix">
                 <WindowPane title="editing-matrix.exe" accent="#FFD93D">
-                  <MatrixTab rows={analysis.editing_matrix} />
+                  <MatrixTab
+                    rows={analysis.editing_matrix}
+                    strictness={strictness}
+                    optimizedWords={optimizedWordCount}
+                  />
                 </WindowPane>
               </TabsContent>
             </Tabs>
           </section>
         )}
+
+        <section className="mt-6">
+          <ChatAssistant />
+        </section>
 
         <div className="mt-6 flex items-center gap-2">
           <Zap className="h-4 w-4 text-black" />
