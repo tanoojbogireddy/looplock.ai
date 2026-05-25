@@ -55,6 +55,26 @@ const PANE = "border-2 border-black bg-white shadow-[8px_8px_0px_0px_#000000]";
 const BTN_PRIMARY =
   "inline-flex items-center justify-center gap-2 border-2 border-black bg-[#00E5D1] px-5 py-3 text-sm font-extrabold uppercase tracking-wider text-black shadow-[4px_4px_0px_0px_#000000] transition-all hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_#000000] disabled:cursor-not-allowed disabled:opacity-70";
 
+export const WORD_LIMIT = 600;
+
+export type Strictness = "Trim Only" | "Balanced" | "Hyper-Short";
+
+export function getStrictnessConfig(s: Strictness) {
+  switch (s) {
+    case "Trim Only":
+      return { reductionPct: 12, wpm: 135, wpmLabel: "135 WPM (Cinematic Pacing)" };
+    case "Hyper-Short":
+      return { reductionPct: 59, wpm: 160, wpmLabel: "160 WPM (Retention-Max Velocity)" };
+    case "Balanced":
+    default:
+      return { reductionPct: 28, wpm: 145, wpmLabel: "145 WPM (Energetic Storytelling)" };
+  }
+}
+
+export function wordCount(text: string): number {
+  return text ? text.trim().split(/\s+/).filter(Boolean).length : 0;
+}
+
 function Pill({ children, bg = "#FFFFFF" }: { children: React.ReactNode; bg?: string }) {
   return (
     <span
