@@ -179,6 +179,7 @@ function AnalysisTab({
   const scoreColor = score < 5 ? "#FF5E5E" : score <= 7 ? "#FFB627" : "#00C853";
   const metrics = computeScriptMetrics(a, script);
   const { leaks, totalWords, avgPacing } = metrics;
+  type Leak = (typeof leaks)[number];
   const optimizedWords = Math.round(totalWords * 0.6);
   const trimPct = totalWords > 0 ? Math.round(((totalWords - optimizedWords) / totalWords) * 100) : 0;
   return (
@@ -224,7 +225,7 @@ function AnalysisTab({
             </p>
           ) : (
             <ul className="mt-2 space-y-1.5">
-              {leaks.map((leak, i) => (
+              {leaks.map((leak: Leak, i: number) => (
                 <li
                   key={i}
                   className="text-sm font-semibold leading-snug text-black md:text-[15px]"
