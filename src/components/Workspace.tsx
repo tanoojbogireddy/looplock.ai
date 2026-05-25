@@ -1144,12 +1144,21 @@ export function Workspace() {
               </TabsList>
               <TabsContent value="analysis">
                 <WindowPane title="analysis.exe" accent="#FFD93D">
-                  <AnalysisTab a={analysis.analysis} script={script} onJumpToDoctor={() => setTab("doctor")} />
+                  <AnalysisTab
+                    a={analysis.analysis}
+                    script={script}
+                    onJumpToDoctor={() => setTab("doctor")}
+                    strictness={strictness}
+                  />
                 </WindowPane>
               </TabsContent>
               <TabsContent value="doctor">
                 <WindowPane title="script-doctor.exe" accent="#FFD93D">
-                  <DoctorTab rows={analysis.script_doctor} />
+                  <DoctorTab
+                    rows={analysis.script_doctor}
+                    strictness={strictness}
+                    setStrictness={setStrictness}
+                  />
                   {analysis?.full_rewritten_script && (
                     <div className="mt-5">
                       <FullScriptCard script={analysis.full_rewritten_script} />
@@ -1159,12 +1168,20 @@ export function Workspace() {
               </TabsContent>
               <TabsContent value="matrix">
                 <WindowPane title="editing-matrix.exe" accent="#FFD93D">
-                  <MatrixTab rows={analysis.editing_matrix} />
+                  <MatrixTab
+                    rows={analysis.editing_matrix}
+                    strictness={strictness}
+                    optimizedWords={optimizedWordCount}
+                  />
                 </WindowPane>
               </TabsContent>
             </Tabs>
           </section>
         )}
+
+        <section className="mt-6">
+          <ChatAssistant />
+        </section>
 
         <div className="mt-6 flex items-center gap-2">
           <Zap className="h-4 w-4 text-black" />
