@@ -562,7 +562,59 @@ function RetentionChartBlock({
   );
 }
 
-function DoctorTab({ rows }: { rows: Analysis["script_doctor"] }) {
+function StrictnessPicker({
+  value,
+  onChange,
+}: {
+  value: Strictness;
+  onChange: (v: Strictness) => void;
+}) {
+  const opts: { v: Strictness; bg: string }[] = [
+    { v: "Trim Only", bg: "#FFD93D" },
+    { v: "Balanced", bg: "#00E5D1" },
+    { v: "Hyper-Short", bg: "#FF5E5E" },
+  ];
+  return (
+    <div className={`${CARD} p-4`} style={{ backgroundColor: "#FFFDF5" }}>
+      <div className="font-mono text-[11px] font-bold uppercase tracking-widest text-black">
+        Optimization Strictness
+      </div>
+      <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-3">
+        {opts.map((o) => {
+          const active = value === o.v;
+          return (
+            <button
+              key={o.v}
+              type="button"
+              onClick={() => onChange(o.v)}
+              className={`border-2 border-black px-3 py-3 font-mono text-xs font-extrabold uppercase tracking-widest text-black transition-all ${
+                active
+                  ? "shadow-[4px_4px_0px_0px_#000] translate-x-0 translate-y-0"
+                  : "bg-white shadow-[2px_2px_0px_0px_#000] hover:translate-x-[1px] hover:translate-y-[1px]"
+              }`}
+              style={active ? { backgroundColor: o.bg } : undefined}
+            >
+              {o.v}
+            </button>
+          );
+        })}
+      </div>
+      <div className="mt-3 font-mono text-[10px] uppercase tracking-widest text-black/70">
+        Active: {getStrictnessConfig(value).wpmLabel} · Target Trim {getStrictnessConfig(value).reductionPct}%
+      </div>
+    </div>
+  );
+}
+
+function DoctorTab({
+  rows,
+  strictness,
+  setStrictness,
+}: {
+  rows: Analysis["script_doctor"];
+  strictness: Strictness;
+  setStrictness: (s: Strictness) => void;
+}) {
   const copyAll = async () => {
     const text = rows.map((r) => r.retaining_remedy).join("\n\n");
     try {
@@ -573,6 +625,7 @@ function DoctorTab({ rows }: { rows: Analysis["script_doctor"] }) {
   };
   return (
     <div className="space-y-5">
+      <StrictnessPicker value={strictness} onChange={setStrictness} />
       <div className="flex items-center gap-2">
         <Stethoscope className="h-5 w-5 text-black" />
         <h3 className="font-serif text-xl font-bold text-black">Fix My Script</h3>
