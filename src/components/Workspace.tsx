@@ -605,7 +605,54 @@ function StrictnessPicker({
 }
 
 function DoctorTab({
-  // helper hoisted above
+}
+
+type DoctorRow = {
+  originalText: string;
+  rewritten: Record<Strictness, string>;
+  whyItWorks: Record<Strictness, string>;
+};
+
+function buildDoctorRow(r: Analysis["script_doctor"][number]): DoctorRow {
+  const original = r.flagged_weakness ?? "";
+  const base = (r.retaining_remedy ?? "").trim();
+  const filler =
+    /\b(basically|honestly|literally|actually|like,|you know|kind of|sort of|just|really|very|so,)\b/gi;
+  const trimOnly = (base || original)
+    .replace(filler, "")
+    .replace(/\s{2,}/g, " ")
+    .replace(/\s+([,.!?])/g, "$1")
+    .trim();
+  const balanced = base || trimOnly;
+  // Hyper-Short: keep first clause / first ~8 words, punchy ending
+  const firstClause = (base || trimOnly).split(/[,.;:!?]/)[0]?.trim() ?? base;
+  const words = firstClause.split(/\s+/).filter(Boolean);
+  const hyperBase = words.slice(0, 8).join(" ").trim();
+  const hyperShort = hyperBase
+    ? /[.!?]$/.test(hyperBase)
+      ? hyperBase
+      : `${hyperBase}.`
+    : balanced;
+  return {
+    originalText: original,
+    rewritten: {
+      "Trim Only": trimOnly || balanced || original,
+      Balanced: balanced || original,
+      "Hyper-Short": hyperShort || balanced || original,
+    },
+    whyItWorks: {
+      "Trim Only":
+        "Maintains original tone while purging low-value filler words.",
+      Balanced:
+        r.why_it_works ||
+        "Optimizes sentence length to hit an energetic 145 WPM cadence.",
+      "Hyper-Short":
+        "Maximum compression. Formatted explicitly for fast-paced pattern interrupts.",
+    },
+  };
+}
+
+function DoctorTab({
   rows,
   strictness,
   setStrictness,
