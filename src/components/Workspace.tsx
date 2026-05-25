@@ -811,7 +811,7 @@ export function Workspace() {
                     ))}
                   </TabsList>
                   <TabsContent value="analysis">
-                    <AnalysisTab a={analysis.analysis} onJumpToDoctor={() => setTab("doctor")} />
+                    <AnalysisTab a={analysis.analysis} script={script} onJumpToDoctor={() => setTab("doctor")} />
                   </TabsContent>
                   <TabsContent value="doctor">
                     <DoctorTab rows={analysis.script_doctor} />
