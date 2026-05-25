@@ -676,13 +676,37 @@ function secondsToStamp(s: number) {
   return `${m}:${String(sec).padStart(2, "0")}`;
 }
 
-function MatrixTab({ rows }: { rows: Analysis["editing_matrix"] }) {
-  const WPM = 140;
+function MatrixTab({
+  rows,
+  strictness,
+  optimizedWords,
+}: {
+  rows: Analysis["editing_matrix"];
+  strictness: Strictness;
+  optimizedWords: number;
+}) {
+  const cfg = getStrictnessConfig(strictness);
+  const trueDurationInSeconds = Math.max(
+    1,
+    Math.round((Math.max(1, optimizedWords) / cfg.wpm) * 60),
+  );
+  // Strictness-driven interval band: Hyper-Short 2-4s, Balanced 4-7s, Trim Only 7-10s
+  const band =
+    strictness === "Hyper-Short"
+      ? { min: 2, max: 4 }
+      : strictness === "Trim Only"
+        ? { min: 7, max: 10 }
+        : { min: 4, max: 7 };
+  const n = Math.max(rows.length, 1);
+  // ideal evenly-spaced interval so the last stamp ≈ trueDurationInSeconds
+  const idealInterval = trueDurationInSeconds / n;
+  const interval = Math.max(band.min, Math.min(band.max, idealInterval));
   let cursor = 0;
-  const enriched = rows.map((row) => {
-    const stamp = secondsToStamp(cursor);
-    const words = row.corrected_line.trim().split(/\s+/).filter(Boolean).length;
-    cursor += (words / WPM) * 60;
+  const enriched = rows.map((row, i) => {
+    // last row snapped to trueDurationInSeconds
+    const t = i === rows.length - 1 ? trueDurationInSeconds : cursor;
+    const stamp = secondsToStamp(t);
+    cursor += interval;
     const technique =
       row.editing_technique?.trim() ||
       `${row.camera_framing} + ${row.b_roll_sound_fx}`;
@@ -726,7 +750,8 @@ function MatrixTab({ rows }: { rows: Analysis["editing_matrix"] }) {
         <h3 className="font-serif text-xl font-bold text-black">Editor Briefing</h3>
       </div>
       <p className="text-sm text-muted-foreground">
-        Hand this directly to your editor. Timestamps are calculated at 140 words per minute.
+        Hand this directly to your editor. Timestamps scaled for {cfg.wpmLabel} ·
+        final cue lands at {secondsToStamp(trueDurationInSeconds)}.
       </p>
       <div className="overflow-hidden border-2 border-black shadow-[6px_6px_0px_0px_#000000]">
         <div className="overflow-x-auto">
