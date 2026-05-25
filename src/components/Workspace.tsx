@@ -1011,19 +1011,42 @@ export function Workspace() {
                 rows={16}
                 className="w-full resize-none border-2 border-black bg-white p-4 font-mono text-sm leading-relaxed text-black placeholder:text-muted-foreground focus:outline-none"
               />
+              <div className="mt-2 flex flex-wrap items-center justify-between gap-2 font-mono text-[11px] font-bold uppercase tracking-widest text-black">
+                <span className="inline-flex items-center gap-2 border-2 border-black bg-white px-2 py-1 shadow-[2px_2px_0px_0px_#000]">
+                  Total Words
+                  <span className={`border-2 border-black px-1.5 ${isOverLimit ? "bg-[#FF6B6B]" : "bg-[#00E5D1]"}`}>
+                    {currentWordCount}
+                  </span>
+                  <span className="text-black/60">/ {WORD_LIMIT}</span>
+                </span>
+              </div>
+              {isOverLimit && (
+                <div
+                  className="mt-3 border-2 border-black p-3 font-mono text-xs font-extrabold uppercase tracking-wider text-black shadow-[4px_4px_0px_0px_#000]"
+                  style={{ backgroundColor: "#FF6B6B" }}
+                >
+                  ⚠️ SCRIPT LENGTH EXCEEDED: {currentWordCount} / {WORD_LIMIT} Words Max. Please trim your draft to optimize for high-retention short-form video.
+                </div>
+              )}
               <button
                 onClick={onAnalyze}
-                disabled={status === "loading" || !script.trim() || outOfCredits}
+                disabled={status === "loading" || !script.trim() || outOfCredits || isOverLimit}
                 className={`${BTN_PRIMARY} mt-4 w-full py-3.5 text-base`}
               >
                 {status === "loading" ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : outOfCredits ? (
                   <Lock className="h-4 w-4" />
+                ) : isOverLimit ? (
+                  <AlertTriangle className="h-4 w-4" />
                 ) : (
                   <Sparkles className="h-4 w-4" />
                 )}
-                {outOfCredits ? "Free Credits Used Up" : "Analyze My Script ➔ See Results"}
+                {outOfCredits
+                  ? "Free Credits Used Up"
+                  : isOverLimit
+                    ? "Trim Below 600 Words to Analyze"
+                    : "Analyze My Script ➔ See Results"}
               </button>
               {outOfCredits && (
                 <div
