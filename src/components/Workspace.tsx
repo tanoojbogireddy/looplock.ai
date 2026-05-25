@@ -354,12 +354,15 @@ function AnalysisTab({
 function RetentionChartBlock({
   a,
   script,
+  strictness,
 }: {
   a: Analysis["analysis"];
   script: string;
+  strictness: Strictness;
 }) {
   // Build dynamic per-sentence dataset
-  const WPM = 140;
+  const cfg = getStrictnessConfig(strictness);
+  const WPM = cfg.wpm;
   const sentences = (script || "")
     .split(/(?<=[.?!…])\s+|\n+/)
     .map((s) => s.trim())
@@ -430,12 +433,16 @@ function RetentionChartBlock({
     };
   });
 
-  const totalWords = sentences.reduce(
-    (n, s) => n + (s.split(/\s+/).filter(Boolean).length || 0),
-    0,
+  const totalWords = wordCount(script);
+  const optimizedWords = Math.max(
+    1,
+    Math.round(totalWords * (1 - cfg.reductionPct / 100)),
   );
-  const totalDuration = data.length ? Math.max(30, data[data.length - 1].second + 1) : 30;
-  const avgPacing = totalDuration > 0 ? Math.round((totalWords / totalDuration) * 60) : WPM;
+  const trueDurationInSeconds = Math.max(
+    1,
+    Math.round((optimizedWords / cfg.wpm) * 60),
+  );
+  const avgPacing = cfg.wpm;
   const leakCount = data.filter((d) => d.isLeakWarning).length;
 
   const ChartTooltip = ({ active, payload }: { active?: boolean; payload?: Array<{ payload: Pt }> }) => {
@@ -501,7 +508,7 @@ function RetentionChartBlock({
               <XAxis
                 dataKey="second"
                 type="number"
-                domain={[0, Math.ceil(totalDuration)]}
+                domain={[0, trueDurationInSeconds]}
                 tick={{ fontFamily: "monospace", fontSize: 10, fill: "#000" }}
                 stroke="#000"
                 tickFormatter={(v) => `${v}s`}
