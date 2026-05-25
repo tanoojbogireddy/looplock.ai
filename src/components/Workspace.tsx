@@ -14,6 +14,16 @@ import {
   FileText,
 } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip as RTooltip,
+  ResponsiveContainer,
+  ReferenceLine,
+} from "recharts";
 
 type Analysis = {
   analysis: {
@@ -158,13 +168,135 @@ function RetentionCurve({
 
 function AnalysisTab({
   a,
+  script,
   onJumpToDoctor,
 }: {
   a: Analysis["analysis"];
+  script: string;
   onJumpToDoctor: () => void;
 }) {
   const score = Math.max(1, Math.min(10, Math.round(a.video_score)));
   const scoreColor = score < 5 ? "#FF5E5E" : score <= 7 ? "#FFB627" : "#00C853";
+
+  // Build dynamic per-sentence dataset
+  const WPM = 140;
+  const sentences = (script || "")
+    .split(/(?<=[.?!…])\s+|\n+/)
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
+
+  const interp = (arr: number[], totalSpan: number, t: number) => {
+    if (!arr || arr.length < 2) return 0;
+    const clamped = Math.max(0, Math.min(totalSpan, t));
+    const step = totalSpan / (arr.length - 1);
+    const idxF = clamped / step;
+    const i0 = Math.floor(idxF);
+    const i1 = Math.min(arr.length - 1, i0 + 1);
+    const frac = idxF - i0;
+    return arr[i0] + (arr[i1] - arr[i0]) * frac;
+  };
+
+  type Pt = {
+    second: number;
+    original: number;
+    optimized: number;
+    sentenceText: string;
+    wpm: number;
+    isLeakWarning: boolean;
+  };
+
+  let cursor = 0;
+  const raw: Omit<Pt, "isLeakWarning">[] = [];
+  if (sentences.length === 0) {
+    // fallback so chart still renders
+    for (let i = 0; i <= 10; i++) {
+      const t = i * 3;
+      raw.push({
+        second: t,
+        original: interp(a.original_chart_data, 30, t),
+        optimized: interp(a.optimized_chart_data, 30, t),
+        sentenceText: "(no script provided)",
+        wpm: WPM,
+      });
+    }
+  } else {
+    sentences.forEach((s) => {
+      const words = s.split(/\s+/).filter(Boolean).length || 1;
+      const dur = (words / WPM) * 60;
+      const mid = cursor + dur / 2;
+      // per-sentence "delivery" wpm with light deterministic variance
+      const lenFactor = Math.max(-25, Math.min(25, (10 - words) * 2));
+      const punchy = /[?!]$/.test(s) ? 12 : 0;
+      const wpm = Math.round(WPM + lenFactor + punchy);
+      raw.push({
+        second: Math.round(mid * 10) / 10,
+        original: interp(a.original_chart_data, 30, mid),
+        optimized: interp(a.optimized_chart_data, 30, mid),
+        sentenceText: s,
+        wpm,
+      });
+      cursor += dur;
+    });
+  }
+
+  const data: Pt[] = raw.map((p, i) => {
+    const prev = raw[i - 1];
+    const drop = prev ? prev.original - p.original : 0;
+    return {
+      ...p,
+      original: Math.round(p.original * 10) / 10,
+      optimized: Math.round(p.optimized * 10) / 10,
+      isLeakWarning: drop >= 8,
+    };
+  });
+
+  const totalWords = sentences.reduce(
+    (n, s) => n + (s.split(/\s+/).filter(Boolean).length || 0),
+    0,
+  );
+  const totalDuration = data.length ? Math.max(30, data[data.length - 1].second + 1) : 30;
+  const avgPacing = totalDuration > 0 ? Math.round((totalWords / totalDuration) * 60) : WPM;
+  const leakCount = data.filter((d) => d.isLeakWarning).length;
+
+  const ChartTooltip = ({ active, payload }: { active?: boolean; payload?: Array<{ payload: Pt }> }) => {
+    if (!active || !payload || !payload.length) return null;
+    const p = payload[0].payload;
+    return (
+      <div className="max-w-xs border-2 border-black bg-white p-3 shadow-[4px_4px_0px_0px_#000000]">
+        <div className="font-mono text-[10px] font-bold uppercase tracking-widest text-black/60">
+          @ {p.second.toFixed(1)}s · {p.wpm} WPM
+        </div>
+        <p className="mt-1 font-serif text-sm font-bold leading-snug text-black">
+          "{p.sentenceText}"
+        </p>
+        <div className="mt-2 grid grid-cols-2 gap-2">
+          <div className="border-2 border-black bg-[#FFE5E5] px-2 py-1 text-center">
+            <div className="font-mono text-[9px] font-bold uppercase tracking-wider text-black">Original</div>
+            <div className="font-serif text-base font-extrabold text-black">{p.original.toFixed(0)}%</div>
+          </div>
+          <div className="border-2 border-black bg-[#E5FFE9] px-2 py-1 text-center">
+            <div className="font-mono text-[9px] font-bold uppercase tracking-wider text-black">Fixed</div>
+            <div className="font-serif text-base font-extrabold text-black">{p.optimized.toFixed(0)}%</div>
+          </div>
+        </div>
+        {p.isLeakWarning && (
+          <div className="mt-2 border-2 border-black bg-[#FF5E5E] px-2 py-1 text-center font-mono text-[10px] font-bold uppercase tracking-wider text-black">
+            ⚠ Retention Leak
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const WarningDot = (props: { cx?: number; cy?: number; payload?: Pt }) => {
+    const { cx, cy, payload } = props;
+    if (cx == null || cy == null || !payload) return <g />;
+    if (payload.isLeakWarning) {
+      return <circle cx={cx} cy={cy} r={7} fill="#ff6b6b" stroke="#000" strokeWidth={3} />;
+    }
+    return <circle cx={cx} cy={cy} r={3} fill="#ff6b6b" stroke="#000" strokeWidth={1.5} />;
+  };
+
   return (
     <div className="space-y-5">
       {/* Score */}
@@ -193,24 +325,79 @@ function AnalysisTab({
         </p>
       </div>
 
-      {/* Two charts side by side */}
-      <div className="grid gap-5 sm:grid-cols-2">
-        <div className={`${CARD} min-w-0 p-3 sm:p-4`} style={{ backgroundColor: "#FFE5E5" }}>
-          <h4 className="font-serif text-base font-bold text-black">When people stop watching</h4>
-          <div className="mt-3 w-full overflow-hidden">
-            <RetentionCurve
-              data={a.original_chart_data}
-              color="#FF5E5E"
-              markerSecond={a.original_drop_second}
-              markerLabel="Most people leave here"
-            />
+      {/* Dynamic retention chart */}
+      <div className={`${CARD} min-w-0 p-3 sm:p-4`} style={{ backgroundColor: "#FFFDF5" }}>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h4 className="font-serif text-base font-bold text-black">Retention Curve · Original vs Fixed</h4>
+          <div className="flex items-center gap-3 font-mono text-[10px] font-bold uppercase tracking-widest text-black">
+            <span className="inline-flex items-center gap-1.5">
+              <span className="inline-block h-[3px] w-5" style={{ backgroundColor: "#ff6b6b" }} /> Original
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <span
+                className="inline-block h-[2px] w-5"
+                style={{ backgroundImage: "linear-gradient(to right, #4ade80 50%, transparent 50%)", backgroundSize: "8px 2px" }}
+              />
+              Fixed
+            </span>
           </div>
         </div>
-        <div className={`${CARD} min-w-0 p-3 sm:p-4`} style={{ backgroundColor: "#E5FFE9" }}>
-          <h4 className="font-serif text-base font-bold text-black">After the fix</h4>
-          <div className="mt-3 w-full overflow-hidden">
-            <RetentionCurve data={a.optimized_chart_data} color="#00FF66" />
-          </div>
+        <div className="mt-3 h-[280px] w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={data} margin={{ top: 12, right: 12, bottom: 8, left: 0 }}>
+              <CartesianGrid stroke="#000" strokeOpacity={0.12} />
+              <XAxis
+                dataKey="second"
+                type="number"
+                domain={[0, Math.ceil(totalDuration)]}
+                tick={{ fontFamily: "monospace", fontSize: 10, fill: "#000" }}
+                stroke="#000"
+                tickFormatter={(v) => `${v}s`}
+              />
+              <YAxis
+                domain={[0, 100]}
+                tick={{ fontFamily: "monospace", fontSize: 10, fill: "#000" }}
+                stroke="#000"
+                tickFormatter={(v) => `${v}%`}
+              />
+              <ReferenceLine y={65} stroke="#FF1F1F" strokeDasharray="4 3" />
+              <RTooltip content={<ChartTooltip />} cursor={{ stroke: "#000", strokeWidth: 1, strokeDasharray: "3 3" }} />
+              <Line
+                type="monotone"
+                dataKey="original"
+                name="Original"
+                stroke="#ff6b6b"
+                strokeWidth={3}
+                dot={<WarningDot />}
+                activeDot={{ r: 6, fill: "#ff6b6b", stroke: "#000", strokeWidth: 2 }}
+                isAnimationActive={false}
+              />
+              <Line
+                type="monotone"
+                dataKey="optimized"
+                name="Fixed"
+                stroke="#4ade80"
+                strokeWidth={2}
+                strokeDasharray="5 5"
+                dot={{ r: 3, fill: "#4ade80", stroke: "#000", strokeWidth: 1.5 }}
+                activeDot={{ r: 6, fill: "#4ade80", stroke: "#000", strokeWidth: 2 }}
+                isAnimationActive={false}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Real-time stats summary */}
+        <div className="mt-4 flex flex-wrap gap-2">
+          <span className="inline-flex items-center gap-2 border-2 border-black bg-white px-3 py-1.5 font-mono text-[11px] font-bold uppercase tracking-widest text-black shadow-[3px_3px_0px_0px_#000000]">
+            Total Words <span className="border-2 border-black bg-[#00E5D1] px-1.5">{totalWords}</span>
+          </span>
+          <span className="inline-flex items-center gap-2 border-2 border-black bg-white px-3 py-1.5 font-mono text-[11px] font-bold uppercase tracking-widest text-black shadow-[3px_3px_0px_0px_#000000]">
+            Avg Pacing <span className="border-2 border-black bg-[#FFD93D] px-1.5">{avgPacing} WPM</span>
+          </span>
+          <span className="inline-flex items-center gap-2 border-2 border-black bg-white px-3 py-1.5 font-mono text-[11px] font-bold uppercase tracking-widest text-black shadow-[3px_3px_0px_0px_#000000]">
+            Retention Leaks <span className="border-2 border-black bg-[#FF5E5E] px-1.5 text-black">{leakCount}</span>
+          </span>
         </div>
       </div>
 
@@ -624,7 +811,7 @@ export function Workspace() {
                     ))}
                   </TabsList>
                   <TabsContent value="analysis">
-                    <AnalysisTab a={analysis.analysis} onJumpToDoctor={() => setTab("doctor")} />
+                    <AnalysisTab a={analysis.analysis} script={script} onJumpToDoctor={() => setTab("doctor")} />
                   </TabsContent>
                   <TabsContent value="doctor">
                     <DoctorTab rows={analysis.script_doctor} />
