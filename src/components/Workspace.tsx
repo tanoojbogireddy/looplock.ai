@@ -166,6 +166,67 @@ function RetentionCurve({
   );
 }
 
+type LeakPoint = {
+  timestamp: number;
+  sentenceSnippet: string;
+};
+
+function computeScriptMetrics(
+  a: Analysis["analysis"],
+  script: string,
+): { leaks: LeakPoint[]; totalWords: number; avgPacing: number } {
+  const WPM = 140;
+  const sentences = (script || "")
+    .split(/(?<=[.?!…])\s+|\n+/)
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
+
+  const interp = (arr: number[], totalSpan: number, t: number) => {
+    if (!arr || arr.length < 2) return 0;
+    const clamped = Math.max(0, Math.min(totalSpan, t));
+    const step = totalSpan / (arr.length - 1);
+    const idxF = clamped / step;
+    const i0 = Math.floor(idxF);
+    const i1 = Math.min(arr.length - 1, i0 + 1);
+    const frac = idxF - i0;
+    return arr[i0] + (arr[i1] - arr[i0]) * frac;
+  };
+
+  let cursor = 0;
+  const points: { second: number; original: number; sentence: string }[] = [];
+  sentences.forEach((s) => {
+    const words = s.split(/\s+/).filter(Boolean).length || 1;
+    const dur = (words / WPM) * 60;
+    const mid = cursor + dur / 2;
+    points.push({
+      second: Math.round(mid * 10) / 10,
+      original: interp(a.original_chart_data, 30, mid),
+      sentence: s,
+    });
+    cursor += dur;
+  });
+
+  const leaks: LeakPoint[] = [];
+  for (let i = 1; i < points.length; i++) {
+    const drop = points[i - 1].original - points[i].original;
+    if (drop >= 8) {
+      const snippet = points[i].sentence.split(/\s+/).slice(0, 8).join(" ");
+      leaks.push({ timestamp: points[i].second, sentenceSnippet: snippet });
+    }
+  }
+
+  const totalWords = sentences.reduce(
+    (n, s) => n + (s.split(/\s+/).filter(Boolean).length || 0),
+    0,
+  );
+  const totalDuration = points.length ? Math.max(30, points[points.length - 1].second + 1) : 30;
+  const avgPacing = totalDuration > 0 && totalWords > 0
+    ? Math.round((totalWords / totalDuration) * 60)
+    : WPM;
+
+  return { leaks, totalWords, avgPacing };
+}
+
 function AnalysisTab({
   a,
   script,
