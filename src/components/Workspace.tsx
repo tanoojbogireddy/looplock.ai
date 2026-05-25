@@ -253,18 +253,22 @@ function AnalysisTab({
   a,
   script,
   onJumpToDoctor,
+  strictness,
 }: {
   a: Analysis["analysis"];
   script: string;
   onJumpToDoctor: () => void;
+  strictness: Strictness;
 }) {
   const score = Math.max(1, Math.min(10, Math.round(a.video_score)));
   const scoreColor = score < 5 ? "#FF5E5E" : score <= 7 ? "#FFB627" : "#00C853";
   const metrics = computeScriptMetrics(a, script);
-  const { leaks, totalWords, avgPacing } = metrics;
-  type Leak = (typeof leaks)[number];
-  const optimizedWords = Math.round(totalWords * 0.6);
+  const { leaks } = metrics;
+  const cfg = getStrictnessConfig(strictness);
+  const totalWords = wordCount(script);
+  const optimizedWords = Math.max(0, Math.round(totalWords * (1 - cfg.reductionPct / 100)));
   const trimPct = totalWords > 0 ? Math.round(((totalWords - optimizedWords) / totalWords) * 100) : 0;
+  type Leak = (typeof leaks)[number];
   return (
     <div className="space-y-5">
       {/* Score */}
@@ -294,7 +298,7 @@ function AnalysisTab({
       </div>
 
       {/* Retention chart + stats */}
-      <RetentionChartBlock a={a} script={script} />
+      <RetentionChartBlock a={a} script={script} strictness={strictness} />
 
       {/* Plain cards */}
       <div className="grid gap-5 md:grid-cols-2">
@@ -319,7 +323,7 @@ function AnalysisTab({
             </ul>
           )}
           <div className="mt-3 inline-block border-2 border-black bg-white px-2 py-1 font-mono text-[10px] font-bold uppercase tracking-widest text-black shadow-[2px_2px_0px_0px_#000]">
-            Original Pace: {avgPacing} WPM
+            Original Pace: {metrics.avgPacing} WPM
           </div>
         </div>
         <div className={`${CARD} p-5`} style={{ backgroundColor: "#CFFFD7" }}>
@@ -333,7 +337,7 @@ function AnalysisTab({
             <li>• Script compressed by {trimPct}%</li>
           </ul>
           <div className="mt-3 inline-block border-2 border-black bg-white px-2 py-1 font-mono text-[10px] font-bold uppercase tracking-widest text-black shadow-[2px_2px_0px_0px_#000]">
-            Suggested Target Pacing: 145 - 160 WPM (Conversational Speed)
+            Suggested Target Pacing: {cfg.wpmLabel}
           </div>
         </div>
       </div>
