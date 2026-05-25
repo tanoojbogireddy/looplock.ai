@@ -604,9 +604,6 @@ function StrictnessPicker({
   );
 }
 
-function DoctorTab({
-}
-
 type DoctorRow = {
   originalText: string;
   rewritten: Record<Strictness, string>;
