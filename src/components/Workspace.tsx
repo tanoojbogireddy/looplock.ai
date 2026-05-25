@@ -205,6 +205,9 @@ function AnalysisTab({
         </p>
       </div>
 
+      {/* Retention chart + stats */}
+      <RetentionChartBlock a={a} script={script} />
+
       {/* Plain cards */}
       <div className="grid gap-5 md:grid-cols-2">
         <div className={`${CARD} p-5`} style={{ backgroundColor: "#FFD7D7" }}>
