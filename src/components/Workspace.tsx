@@ -12,6 +12,8 @@ import {
   Printer,
   Lock,
   FileText,
+  MessageSquare,
+  Send,
 } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
