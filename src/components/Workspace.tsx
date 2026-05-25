@@ -605,6 +605,7 @@ function StrictnessPicker({
 }
 
 function DoctorTab({
+  // helper hoisted above
   rows,
   strictness,
   setStrictness,
