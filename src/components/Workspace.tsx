@@ -177,7 +177,70 @@ function AnalysisTab({
 }) {
   const score = Math.max(1, Math.min(10, Math.round(a.video_score)));
   const scoreColor = score < 5 ? "#FF5E5E" : score <= 7 ? "#FFB627" : "#00C853";
+  return (
+    <div className="space-y-5">
+      {/* Score */}
+      <div
+        className={`${CARD} flex flex-col items-center p-6 text-center`}
+        style={{ backgroundColor: "#FFFDF5" }}
+      >
+        <span className="font-mono text-[11px] font-bold uppercase tracking-widest text-black">
+          Your Video Score
+        </span>
+        <div
+          className="mt-2 border-2 border-black px-6 py-2 shadow-[4px_4px_0px_0px_#000000]"
+          style={{ backgroundColor: scoreColor }}
+        >
+          <span className="font-serif text-5xl font-extrabold text-black md:text-6xl">
+            {score}/10
+          </span>
+        </div>
+        {a.score_justification && (
+          <p className="mt-3 max-w-xl font-mono text-[11px] font-bold uppercase tracking-wider text-black/80">
+            {a.score_justification}
+          </p>
+        )}
+        <p className="mt-4 max-w-xl font-serif text-base font-semibold leading-snug text-black md:text-lg">
+          {a.plain_summary}
+        </p>
+      </div>
 
+      {/* Plain cards */}
+      <div className="grid gap-5 md:grid-cols-2">
+        <div className={`${CARD} p-5`} style={{ backgroundColor: "#FFD7D7" }}>
+          <div className="font-mono text-xs font-bold uppercase tracking-widest text-black">
+            ❌ What's happening
+          </div>
+          <p className="mt-2 text-sm font-semibold leading-snug text-black md:text-base">
+            {a.problem_plain}
+          </p>
+        </div>
+        <div className={`${CARD} p-5`} style={{ backgroundColor: "#CFFFD7" }}>
+          <div className="font-mono text-xs font-bold uppercase tracking-widest text-black">
+            ✅ After fixing this
+          </div>
+          <p className="mt-2 text-sm font-semibold leading-snug text-black md:text-base">
+            {a.fix_plain}
+          </p>
+        </div>
+      </div>
+
+      <div className="flex justify-center pt-1">
+        <button onClick={onJumpToDoctor} className={BTN_PRIMARY}>
+          See how to fix it <ArrowRight className="h-4 w-4" /> Script Doctor
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function RetentionChartBlock({
+  a,
+  script,
+}: {
+  a: Analysis["analysis"];
+  script: string;
+}) {
   // Build dynamic per-sentence dataset
   const WPM = 140;
   const sentences = (script || "")
@@ -298,35 +361,7 @@ function AnalysisTab({
   };
 
   return (
-    <div className="space-y-5">
-      {/* Score */}
-      <div
-        className={`${CARD} flex flex-col items-center p-6 text-center`}
-        style={{ backgroundColor: "#FFFDF5" }}
-      >
-        <span className="font-mono text-[11px] font-bold uppercase tracking-widest text-black">
-          Your Video Score
-        </span>
-        <div
-          className="mt-2 border-2 border-black px-6 py-2 shadow-[4px_4px_0px_0px_#000000]"
-          style={{ backgroundColor: scoreColor }}
-        >
-          <span className="font-serif text-5xl font-extrabold text-black md:text-6xl">
-            {score}/10
-          </span>
-        </div>
-        {a.score_justification && (
-          <p className="mt-3 max-w-xl font-mono text-[11px] font-bold uppercase tracking-wider text-black/80">
-            {a.score_justification}
-          </p>
-        )}
-        <p className="mt-4 max-w-xl font-serif text-base font-semibold leading-snug text-black md:text-lg">
-          {a.plain_summary}
-        </p>
-      </div>
-
-      {/* Dynamic retention chart */}
-      <div className={`${CARD} min-w-0 p-3 sm:p-4`} style={{ backgroundColor: "#FFFDF5" }}>
+    <div className={`${CARD} min-w-0 p-3 sm:p-4`} style={{ backgroundColor: "#FFFDF5" }}>
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h4 className="font-serif text-base font-bold text-black">Retention Curve · Original vs Fixed</h4>
           <div className="flex items-center gap-3 font-mono text-[10px] font-bold uppercase tracking-widest text-black">
@@ -399,33 +434,6 @@ function AnalysisTab({
             Retention Leaks <span className="border-2 border-black bg-[#FF5E5E] px-1.5 text-black">{leakCount}</span>
           </span>
         </div>
-      </div>
-
-      {/* Plain cards */}
-      <div className="grid gap-5 md:grid-cols-2">
-        <div className={`${CARD} p-5`} style={{ backgroundColor: "#FFD7D7" }}>
-          <div className="font-mono text-xs font-bold uppercase tracking-widest text-black">
-            ❌ What's happening
-          </div>
-          <p className="mt-2 text-sm font-semibold leading-snug text-black md:text-base">
-            {a.problem_plain}
-          </p>
-        </div>
-        <div className={`${CARD} p-5`} style={{ backgroundColor: "#CFFFD7" }}>
-          <div className="font-mono text-xs font-bold uppercase tracking-widest text-black">
-            ✅ After fixing this
-          </div>
-          <p className="mt-2 text-sm font-semibold leading-snug text-black md:text-base">
-            {a.fix_plain}
-          </p>
-        </div>
-      </div>
-
-      <div className="flex justify-center pt-1">
-        <button onClick={onJumpToDoctor} className={BTN_PRIMARY}>
-          See how to fix it <ArrowRight className="h-4 w-4" /> Script Doctor
-        </button>
-      </div>
     </div>
   );
 }
@@ -698,7 +706,7 @@ export function Workspace() {
           </p>
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
+        <div className={`grid gap-6 ${status === "done" && analysis ? "" : "lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]"}`}>
           <section>
             <WindowPane title="input.txt" accent="#9FE7F5">
               <textarea
@@ -760,6 +768,7 @@ export function Workspace() {
             </WindowPane>
           </section>
 
+          {status !== "done" && (
           <section>
             <WindowPane title="output.exe" accent="#FFD93D">
               {status === "idle" && !error && (
@@ -792,7 +801,16 @@ export function Workspace() {
                   </p>
                 </div>
               )}
-              {status === "done" && analysis && (
+            </WindowPane>
+          </section>
+          )}
+        </div>
+
+        {status === "done" && analysis && (
+          <section className="mt-6">
+            <WindowPane title="output.exe" accent="#FFD93D">
+              <div className="space-y-5">
+                <RetentionChartBlock a={analysis.analysis} script={script} />
                 <Tabs value={tab} onValueChange={setTab} className="w-full">
                   <TabsList className="mb-4 grid w-full grid-cols-3 gap-0 border-2 border-black bg-white p-0 shadow-[3px_3px_0px_0px_#000000] h-auto rounded-none">
                     {[
@@ -825,10 +843,10 @@ export function Workspace() {
                     <MatrixTab rows={analysis.editing_matrix} />
                   </TabsContent>
                 </Tabs>
-              )}
+              </div>
             </WindowPane>
           </section>
-        </div>
+        )}
 
         <div className="mt-6 flex items-center gap-2">
           <Zap className="h-4 w-4 text-black" />
