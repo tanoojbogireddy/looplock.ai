@@ -6,14 +6,12 @@ import {
   AlertTriangle,
   Zap,
   Stethoscope,
-  Gauge,
   ArrowRight,
   Copy,
   Printer,
   Lock,
   FileText,
 } from "lucide-react";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   LineChart,
   Line,
@@ -252,11 +250,13 @@ function AnalysisTab({
   script,
   onJumpToDoctor,
   strictness,
+  optimizedWords,
 }: {
   a: Analysis["analysis"];
   script: string;
   onJumpToDoctor: () => void;
   strictness: Strictness;
+  optimizedWords: number;
 }) {
   const score = Math.max(1, Math.min(10, Math.round(a.video_score)));
   const scoreColor = score < 5 ? "#FF5E5E" : score <= 7 ? "#FFB627" : "#00C853";
@@ -264,7 +264,6 @@ function AnalysisTab({
   const { leaks } = metrics;
   const cfg = getStrictnessConfig(strictness);
   const totalWords = wordCount(script);
-  const optimizedWords = Math.max(0, Math.round(totalWords * (1 - cfg.reductionPct / 100)));
   const trimPct = totalWords > 0 ? Math.round(((totalWords - optimizedWords) / totalWords) * 100) : 0;
   type Leak = (typeof leaks)[number];
   return (
@@ -296,7 +295,7 @@ function AnalysisTab({
       </div>
 
       {/* Retention chart + stats */}
-      <RetentionChartBlock a={a} script={script} strictness={strictness} />
+      <RetentionChartBlock a={a} script={script} strictness={strictness} optimizedWords={optimizedWords} />
 
       {/* Plain cards */}
       <div className="grid gap-5 md:grid-cols-2">
@@ -353,10 +352,12 @@ function RetentionChartBlock({
   a,
   script,
   strictness,
+  optimizedWords: optimizedWordsProp,
 }: {
   a: Analysis["analysis"];
   script: string;
   strictness: Strictness;
+  optimizedWords?: number;
 }) {
   // Build dynamic per-sentence dataset
   const cfg = getStrictnessConfig(strictness);
@@ -432,10 +433,10 @@ function RetentionChartBlock({
   });
 
   const totalWords = wordCount(script);
-  const optimizedWords = Math.max(
-    1,
-    Math.round(totalWords * (1 - cfg.reductionPct / 100)),
-  );
+  const optimizedWords =
+    typeof optimizedWordsProp === "number" && optimizedWordsProp > 0
+      ? optimizedWordsProp
+      : Math.max(1, Math.round(totalWords * (1 - cfg.reductionPct / 100)));
   const trueDurationInSeconds = Math.max(
     1,
     Math.round((optimizedWords / cfg.wpm) * 60),
@@ -610,60 +611,85 @@ type DoctorRow = {
   whyItWorks: Record<Strictness, string>;
 };
 
-function buildDoctorRow(r: Analysis["script_doctor"][number]): DoctorRow {
-  const original = r.flagged_weakness ?? "";
-  const base = (r.retaining_remedy ?? "").trim();
+function buildDoctorRowFromSentence(sentence: string): DoctorRow {
+  const orig = sentence.trim();
   const filler =
-    /\b(basically|honestly|literally|actually|like,|you know|kind of|sort of|just|really|very|so,)\b/gi;
-  const trimOnly = (base || original)
+    /\b(so|like|basically|honestly|literally|actually|just|really|very|um+|uh+|kind of|sort of|you know|right\?)\b\,?/gi;
+  const trimOnly = orig
     .replace(filler, "")
     .replace(/\s{2,}/g, " ")
     .replace(/\s+([,.!?])/g, "$1")
+    .replace(/^[,\s]+/, "")
     .trim();
-  const balanced = base || trimOnly;
-  // Hyper-Short: keep first clause / first ~8 words, punchy ending
-  const firstClause = (base || trimOnly).split(/[,.;:!?]/)[0]?.trim() ?? base;
-  const words = firstClause.split(/\s+/).filter(Boolean);
-  const hyperBase = words.slice(0, 8).join(" ").trim();
-  const hyperShort = hyperBase
-    ? /[.!?]$/.test(hyperBase)
-      ? hyperBase
-      : `${hyperBase}.`
-    : balanced;
+
+  // Balanced: passive→active swaps + tighten verbose phrases, target ~25-30% shorter
+  let balanced = trimOnly
+    .replace(/\bis being\b/gi, "is")
+    .replace(/\bwas being\b/gi, "was")
+    .replace(/\bin order to\b/gi, "to")
+    .replace(/\bdue to the fact that\b/gi, "because")
+    .replace(/\bat this point in time\b/gi, "now")
+    .replace(/\ba lot of\b/gi, "many")
+    .replace(/\b(quite|simply|that|then)\b/gi, "")
+    .replace(/\s{2,}/g, " ")
+    .replace(/\s+([,.!?])/g, "$1")
+    .trim();
+  const origWords = orig.split(/\s+/).filter(Boolean);
+  const balancedWords = balanced.split(/\s+/).filter(Boolean);
+  const targetLen = Math.max(3, Math.ceil(origWords.length * 0.72));
+  if (balancedWords.length > targetLen) {
+    balanced = balancedWords.slice(0, targetLen).join(" ");
+    if (!/[.!?]$/.test(balanced)) balanced += ".";
+  }
+  if (!balanced) balanced = trimOnly || orig;
+
+  // Hyper-Short: high-impact core, 5-7 words
+  const baseForHyper = (balanced || trimOnly || orig).split(/[,;:]/)[0] || balanced;
+  const hWords = baseForHyper.split(/\s+/).filter(Boolean).slice(0, 6);
+  let hyperShort = hWords.join(" ").replace(/[,;:]+$/, "");
+  if (hyperShort && !/[.!?]$/.test(hyperShort)) hyperShort += ".";
+  if (!hyperShort) hyperShort = balanced;
+
   return {
-    originalText: original,
+    originalText: orig,
     rewritten: {
-      "Trim Only": trimOnly || balanced || original,
-      Balanced: balanced || original,
-      "Hyper-Short": hyperShort || balanced || original,
+      "Trim Only": trimOnly || orig,
+      Balanced: balanced || orig,
+      "Hyper-Short": hyperShort || orig,
     },
     whyItWorks: {
-      "Trim Only":
-        "Maintains original tone while purging low-value filler words.",
-      Balanced:
-        r.why_it_works ||
-        "Optimizes sentence length to hit an energetic 145 WPM cadence.",
-      "Hyper-Short":
-        "Maximum compression. Formatted explicitly for fast-paced pattern interrupts.",
+      "Trim Only": "Filler purged. Core syntax preserved.",
+      Balanced: "Passive → active. ~25-30% tighter for energetic pacing.",
+      "Hyper-Short": "Core hook only. Maximum pattern interrupt.",
     },
   };
+}
+
+function splitScriptToSentences(text: string): string[] {
+  const matches = text.match(/[^.!?\n]+[.!?]+/g);
+  const arr = matches && matches.length
+    ? matches
+    : text.split(/\n+/).filter(Boolean);
+  return arr.map((s) => s.trim()).filter(Boolean);
 }
 
 function DoctorTab({
   rows,
   strictness,
   setStrictness,
+  isProUser,
 }: {
-  rows: Analysis["script_doctor"];
+  rows: DoctorRow[];
   strictness: Strictness;
   setStrictness: (s: Strictness) => void;
+  isProUser: boolean;
 }) {
-  const enrichedRows = rows.map((r) => buildDoctorRow(r));
+  const activeStrictness: Strictness = isProUser ? strictness : "Balanced";
   const copyAll = async () => {
-    const text = enrichedRows
+    const text = rows
       .map(
         (row) =>
-          row.rewritten[strictness] ||
+          row.rewritten[activeStrictness] ||
           row.rewritten["Balanced"] ||
           row.originalText,
       )
@@ -676,7 +702,7 @@ function DoctorTab({
   };
   return (
     <div className="space-y-5">
-      <StrictnessPicker value={strictness} onChange={setStrictness} />
+      {isProUser && <StrictnessPicker value={strictness} onChange={setStrictness} />}
       <div className="flex items-center gap-2">
         <Stethoscope className="h-5 w-5 text-black" />
         <h3 className="font-serif text-xl font-bold text-black">Fix My Script</h3>
@@ -687,7 +713,7 @@ function DoctorTab({
           <div className="border-r-2 border-white/20 px-4 py-3 font-mono font-bold">Rewritten Line</div>
           <div className="px-4 py-3 font-mono font-bold">Why this works</div>
         </div>
-        {enrichedRows.map((row, idx) => (
+        {rows.map((row, idx) => (
           <div
             key={idx}
             className="grid grid-cols-[1fr_1fr_minmax(140px,0.7fr)] border-t-2 border-black first:border-t-0"
@@ -704,7 +730,7 @@ function DoctorTab({
               <div className="flex items-start gap-2">
                 <span className="text-base leading-none">✅</span>
                 <p className="text-sm font-bold leading-snug text-[#005C1A]">
-                  {row.rewritten[strictness] ||
+                  {row.rewritten[activeStrictness] ||
                     row.rewritten["Balanced"] ||
                     row.originalText}
                 </p>
@@ -712,7 +738,7 @@ function DoctorTab({
             </div>
             <div className="bg-white p-4">
               <p className="text-xs leading-snug text-black">
-                {row.whyItWorks[strictness] ||
+                {row.whyItWorks[activeStrictness] ||
                   row.whyItWorks["Balanced"] ||
                   ""}
               </p>
@@ -918,18 +944,23 @@ export function Workspace() {
   const [status, setStatus] = useState<"idle" | "loading" | "done">("idle");
   const [analysis, setAnalysis] = useState<Analysis | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [tab, setTab] = useState<string>("analysis");
   const [strictness, setStrictness] = useState<Strictness>("Balanced");
+  const [isProUser, setIsProUser] = useState<boolean>(false);
   const FREE_LIMIT = 3;
   const [creditsRemaining, setCreditsRemaining] = useState<number>(FREE_LIMIT);
   const outOfCredits = creditsRemaining <= 0;
   const currentWordCount = wordCount(script);
   const isOverLimit = currentWordCount > WORD_LIMIT;
-  const cfg = getStrictnessConfig(strictness);
-  const optimizedWordCount = Math.max(
-    0,
-    Math.round(currentWordCount * (1 - cfg.reductionPct / 100)),
-  );
+
+  // Sentence-level Script Doctor pipeline: derive rows from the user's actual script.
+  const activeStrictness: Strictness = isProUser ? strictness : "Balanced";
+  const sentenceList = splitScriptToSentences(script);
+  const doctorRows: DoctorRow[] = sentenceList.map(buildDoctorRowFromSentence);
+  const finalAggregatedParagraphText = doctorRows
+    .map((r) => r.rewritten[activeStrictness] || r.rewritten["Balanced"] || r.originalText)
+    .join(" ")
+    .trim();
+  const optimizedWordCount = wordCount(finalAggregatedParagraphText);
 
   const onAnalyze = async () => {
     if (!script.trim()) return;
@@ -1099,59 +1130,61 @@ export function Workspace() {
         )}
 
         {status === "done" && analysis && (
-          <section className="mt-6">
-            <Tabs value={tab} onValueChange={setTab} className="w-full">
-              <TabsList className="mb-6 grid w-full grid-cols-3 gap-0 border-2 border-black bg-white p-0 shadow-[6px_6px_0px_0px_#000000] h-auto rounded-none">
-                {[
-                  { v: "analysis", l: "Analysis", icon: Gauge },
-                  { v: "doctor", l: "Script Doctor", icon: Stethoscope },
-                  { v: "matrix", l: "Editing Matrix", icon: Scissors },
-                ].map((t) => (
-                  <TabsTrigger
-                    key={t.v}
-                    value={t.v}
-                    className="rounded-none border-r-2 border-black px-3 py-3.5 text-sm font-bold uppercase tracking-widest text-black data-[state=active]:bg-[#00E5D1] data-[state=active]:shadow-none last:border-r-0"
-                  >
-                    <t.icon className="mr-1.5 h-4 w-4" />
-                    {t.l}
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-              <TabsContent value="analysis">
-                <WindowPane title="analysis.exe" accent="#FFD93D">
-                  <AnalysisTab
-                    a={analysis.analysis}
-                    script={script}
-                    onJumpToDoctor={() => setTab("doctor")}
-                    strictness={strictness}
-                  />
-                </WindowPane>
-              </TabsContent>
-              <TabsContent value="doctor">
-                <WindowPane title="script-doctor.exe" accent="#FFD93D">
-                  <DoctorTab
-                    rows={analysis.script_doctor}
-                    strictness={strictness}
-                    setStrictness={setStrictness}
-                  />
-                  {analysis?.full_rewritten_script && (
-                    <div className="mt-5">
-                      <FullScriptCard script={analysis.full_rewritten_script} />
-                    </div>
-                  )}
-                </WindowPane>
-              </TabsContent>
-              <TabsContent value="matrix">
-                <WindowPane title="editing-matrix.exe" accent="#FFD93D">
-                  <MatrixTab
-                    rows={analysis.editing_matrix}
-                    strictness={strictness}
-                    optimizedWords={optimizedWordCount}
-                  />
-                </WindowPane>
-              </TabsContent>
-            </Tabs>
-          </section>
+          <div className="mt-6 flex w-full flex-col gap-6">
+            {/* Tier toggle (demo) */}
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              <span className="font-mono text-[10px] font-bold uppercase tracking-widest text-black/60">
+                Tier:
+              </span>
+              <button
+                type="button"
+                onClick={() => setIsProUser((v) => !v)}
+                className="inline-flex items-center gap-2 border-2 border-black bg-white px-3 py-1.5 font-mono text-[11px] font-bold uppercase tracking-widest text-black shadow-[3px_3px_0px_0px_#000]"
+              >
+                {isProUser ? "⚡ Pro" : "🔒 Free"} · Toggle
+              </button>
+            </div>
+
+            <section className="w-full">
+              <WindowPane title="analysis.exe" accent="#FFD93D">
+                <AnalysisTab
+                  a={analysis.analysis}
+                  script={script}
+                  onJumpToDoctor={() => {
+                    if (typeof document !== "undefined") {
+                      document
+                        .getElementById("script-doctor-section")
+                        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+                    }
+                  }}
+                  strictness={activeStrictness}
+                  optimizedWords={optimizedWordCount}
+                />
+              </WindowPane>
+            </section>
+
+            <section id="script-doctor-section" className="w-full">
+              <WindowPane title="script-doctor.exe" accent="#FFD93D">
+                <DoctorTab
+                  rows={doctorRows}
+                  strictness={strictness}
+                  setStrictness={setStrictness}
+                  isProUser={isProUser}
+                />
+                <FullScriptCard script={finalAggregatedParagraphText} />
+              </WindowPane>
+            </section>
+
+            <section className="w-full">
+              <WindowPane title="editing-matrix.exe" accent="#FFD93D">
+                <MatrixTab
+                  rows={analysis.editing_matrix}
+                  strictness={activeStrictness}
+                  optimizedWords={optimizedWordCount}
+                />
+              </WindowPane>
+            </section>
+          </div>
         )}
 
         <div className="mt-6 flex items-center gap-2">
