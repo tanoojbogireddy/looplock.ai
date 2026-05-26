@@ -950,6 +950,7 @@ export function Workspace() {
   const [error, setError] = useState<string | null>(null);
   const [strictness, setStrictness] = useState<Strictness>("Balanced");
   const [isProUser, setIsProUser] = useState<boolean>(false);
+  const [activeTab, setActiveTab] = useState<string>("analysis");
   const FREE_LIMIT = 3;
   const [creditsRemaining, setCreditsRemaining] = useState<number>(FREE_LIMIT);
   const outOfCredits = creditsRemaining <= 0;
