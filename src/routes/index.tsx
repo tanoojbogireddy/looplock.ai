@@ -109,34 +109,56 @@ function LandingPage() {
         <div className="mb-10 text-center">
           <Pill bg="#00FF66">Pricing</Pill>
           <h2 className="mt-4 font-serif text-4xl font-bold text-black md:text-5xl">
-            Pay less than your last failed boost.
+            Two tiers. Zero fluff.
           </h2>
         </div>
-        <div className="mx-auto max-w-xl">
-          <div className={`${CARD} relative p-8`} style={{ backgroundColor: "#FFFBEA" }}>
-            <div className="absolute -top-3 right-5">
-              <Pill bg="#FF5E5E">One Tier · All Access</Pill>
-            </div>
-            <Pill bg="#FFD93D">Full Terminal Access</Pill>
-            <h3 className="mt-4 font-serif text-2xl font-bold text-black">Unlimited Audits for ₹499/month</h3>
+        <div className="grid gap-6 md:grid-cols-2">
+          {/* CARD 1 — Starter Access (Free) */}
+          <div className={`${CARD} flex flex-col p-8`} style={{ backgroundColor: "#FFFFFF" }}>
+            <Pill>Starter Access</Pill>
+            <h3 className="mt-4 font-serif text-2xl font-bold text-black">For first-time auditors</h3>
             <div className="mt-3 flex items-baseline gap-2">
-              <span className="font-serif text-6xl font-bold text-black">₹499</span>
-              <span className="font-mono text-sm text-muted-foreground">/month</span>
+              <span className="font-serif text-6xl font-bold text-black">₹0</span>
+              <span className="font-mono text-sm text-muted-foreground">/ month</span>
             </div>
             <ul className="mt-6 space-y-2 text-sm text-black">
-              {[
-                "Unlimited script audits",
-                "Script Doctor: hook, emotional & CTA rewrites",
-                "Timestamped Editing Matrix (camera, B-roll, pacing)",
-                "Tuned for short-form drop-off patterns",
-                "Priority support",
-              ].map((t) => (
-                <li key={t} className="flex items-center gap-2">
-                  <Check className="h-4 w-4" /> {t}
-                </li>
-              ))}
+              <li className="flex items-center gap-2"><Check className="h-4 w-4" /> 3 script audits per month</li>
+              <li className="flex items-center gap-2"><Check className="h-4 w-4" /> Baseline Retention Scorecard</li>
+              <li className="flex items-center gap-2"><Check className="h-4 w-4" /> One-time standard optimized script</li>
+              <li className="flex items-center gap-2 text-black/40"><span className="font-bold">✕</span> Interactive strictness (Trim, Balanced, Hyper-Short)</li>
+              <li className="flex items-center gap-2 text-black/40"><span className="font-bold">✕</span> Video Editing Matrix timestamps</li>
             </ul>
-            <Link to="/app" className={`${BTN_PRIMARY} mt-7 w-full`}>
+            <Link
+              to="/app"
+              className="mt-auto inline-flex w-full items-center justify-center gap-2 border-2 border-black bg-white px-6 py-3.5 pt-7 text-base font-extrabold uppercase tracking-wider text-black shadow-[5px_5px_0px_0px_#000000] transition-all hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[3px_3px_0px_0px_#000000]"
+              style={{ marginTop: "1.75rem" }}
+            >
+              Get Started Free
+            </Link>
+          </div>
+
+          {/* CARD 2 — Pro Creator Access */}
+          <div className={`${CARD} relative flex flex-col p-8`} style={{ backgroundColor: "#FFFBEA" }}>
+            <div className="absolute -top-3 right-5">
+              <Pill bg="#FF5E5E">One Tier · All Access.</Pill>
+            </div>
+            <Pill bg="#FFD93D">Pro Creator Access</Pill>
+            <h3 className="mt-4 font-serif text-2xl font-bold text-black">Full workspace · unlocked</h3>
+            <div className="mt-3 flex items-baseline gap-2">
+              <span className="font-serif text-6xl font-bold text-black">₹499</span>
+              <span className="font-mono text-sm text-muted-foreground">/ month</span>
+            </div>
+            <ul className="mt-6 space-y-2 text-sm text-black">
+              <li className="flex items-center gap-2"><Check className="h-4 w-4" /> 15 script audits per month</li>
+              <li className="flex items-center gap-2"><Check className="h-4 w-4" /> Full Interactive Script Doctor (Trim Only, Balanced, Hyper-Short)</li>
+              <li className="flex items-center gap-2"><Check className="h-4 w-4" /> Timestamped Editing Matrix (camera, B-roll, pacing)</li>
+              <li className="flex items-center gap-2"><Check className="h-4 w-4" /> Tuned for short-form drop-off patterns</li>
+            </ul>
+            <Link
+              to="/app"
+              className="mt-auto inline-flex w-full items-center justify-center gap-2 border-2 border-black px-6 py-3.5 text-base font-extrabold uppercase tracking-wider text-black shadow-[6px_6px_0px_0px_#000000] transition-all hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[3px_3px_0px_0px_#000000]"
+              style={{ backgroundColor: "#00F0FF", marginTop: "1.75rem" }}
+            >
               <Zap className="h-4 w-4" /> Launch Workspace
             </Link>
           </div>
