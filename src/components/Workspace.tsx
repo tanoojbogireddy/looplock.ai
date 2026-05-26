@@ -353,10 +353,12 @@ function RetentionChartBlock({
   a,
   script,
   strictness,
+  optimizedWords: optimizedWordsProp,
 }: {
   a: Analysis["analysis"];
   script: string;
   strictness: Strictness;
+  optimizedWords?: number;
 }) {
   // Build dynamic per-sentence dataset
   const cfg = getStrictnessConfig(strictness);
@@ -432,10 +434,10 @@ function RetentionChartBlock({
   });
 
   const totalWords = wordCount(script);
-  const optimizedWords = Math.max(
-    1,
-    Math.round(totalWords * (1 - cfg.reductionPct / 100)),
-  );
+  const optimizedWords =
+    typeof optimizedWordsProp === "number" && optimizedWordsProp > 0
+      ? optimizedWordsProp
+      : Math.max(1, Math.round(totalWords * (1 - cfg.reductionPct / 100)));
   const trueDurationInSeconds = Math.max(
     1,
     Math.round((optimizedWords / cfg.wpm) * 60),
