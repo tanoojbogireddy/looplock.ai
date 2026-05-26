@@ -13,7 +13,6 @@ import {
   Lock,
   FileText,
 } from "lucide-react";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   LineChart,
   Line,
