@@ -251,11 +251,13 @@ function AnalysisTab({
   script,
   onJumpToDoctor,
   strictness,
+  optimizedWords,
 }: {
   a: Analysis["analysis"];
   script: string;
   onJumpToDoctor: () => void;
   strictness: Strictness;
+  optimizedWords: number;
 }) {
   const score = Math.max(1, Math.min(10, Math.round(a.video_score)));
   const scoreColor = score < 5 ? "#FF5E5E" : score <= 7 ? "#FFB627" : "#00C853";
@@ -263,7 +265,6 @@ function AnalysisTab({
   const { leaks } = metrics;
   const cfg = getStrictnessConfig(strictness);
   const totalWords = wordCount(script);
-  const optimizedWords = Math.max(0, Math.round(totalWords * (1 - cfg.reductionPct / 100)));
   const trimPct = totalWords > 0 ? Math.round(((totalWords - optimizedWords) / totalWords) * 100) : 0;
   type Leak = (typeof leaks)[number];
   return (
@@ -295,7 +296,7 @@ function AnalysisTab({
       </div>
 
       {/* Retention chart + stats */}
-      <RetentionChartBlock a={a} script={script} strictness={strictness} />
+      <RetentionChartBlock a={a} script={script} strictness={strictness} optimizedWords={optimizedWords} />
 
       {/* Plain cards */}
       <div className="grid gap-5 md:grid-cols-2">
