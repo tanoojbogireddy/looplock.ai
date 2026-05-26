@@ -945,18 +945,23 @@ export function Workspace() {
   const [status, setStatus] = useState<"idle" | "loading" | "done">("idle");
   const [analysis, setAnalysis] = useState<Analysis | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [tab, setTab] = useState<string>("analysis");
   const [strictness, setStrictness] = useState<Strictness>("Balanced");
+  const [isProUser, setIsProUser] = useState<boolean>(false);
   const FREE_LIMIT = 3;
   const [creditsRemaining, setCreditsRemaining] = useState<number>(FREE_LIMIT);
   const outOfCredits = creditsRemaining <= 0;
   const currentWordCount = wordCount(script);
   const isOverLimit = currentWordCount > WORD_LIMIT;
-  const cfg = getStrictnessConfig(strictness);
-  const optimizedWordCount = Math.max(
-    0,
-    Math.round(currentWordCount * (1 - cfg.reductionPct / 100)),
-  );
+
+  // Sentence-level Script Doctor pipeline: derive rows from the user's actual script.
+  const activeStrictness: Strictness = isProUser ? strictness : "Balanced";
+  const sentenceList = splitScriptToSentences(script);
+  const doctorRows: DoctorRow[] = sentenceList.map(buildDoctorRowFromSentence);
+  const finalAggregatedParagraphText = doctorRows
+    .map((r) => r.rewritten[activeStrictness] || r.rewritten["Balanced"] || r.originalText)
+    .join(" ")
+    .trim();
+  const optimizedWordCount = wordCount(finalAggregatedParagraphText);
 
   const onAnalyze = async () => {
     if (!script.trim()) return;
@@ -1126,59 +1131,61 @@ export function Workspace() {
         )}
 
         {status === "done" && analysis && (
-          <section className="mt-6">
-            <Tabs value={tab} onValueChange={setTab} className="w-full">
-              <TabsList className="mb-6 grid w-full grid-cols-3 gap-0 border-2 border-black bg-white p-0 shadow-[6px_6px_0px_0px_#000000] h-auto rounded-none">
-                {[
-                  { v: "analysis", l: "Analysis", icon: Gauge },
-                  { v: "doctor", l: "Script Doctor", icon: Stethoscope },
-                  { v: "matrix", l: "Editing Matrix", icon: Scissors },
-                ].map((t) => (
-                  <TabsTrigger
-                    key={t.v}
-                    value={t.v}
-                    className="rounded-none border-r-2 border-black px-3 py-3.5 text-sm font-bold uppercase tracking-widest text-black data-[state=active]:bg-[#00E5D1] data-[state=active]:shadow-none last:border-r-0"
-                  >
-                    <t.icon className="mr-1.5 h-4 w-4" />
-                    {t.l}
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-              <TabsContent value="analysis">
-                <WindowPane title="analysis.exe" accent="#FFD93D">
-                  <AnalysisTab
-                    a={analysis.analysis}
-                    script={script}
-                    onJumpToDoctor={() => setTab("doctor")}
-                    strictness={strictness}
-                  />
-                </WindowPane>
-              </TabsContent>
-              <TabsContent value="doctor">
-                <WindowPane title="script-doctor.exe" accent="#FFD93D">
-                  <DoctorTab
-                    rows={analysis.script_doctor}
-                    strictness={strictness}
-                    setStrictness={setStrictness}
-                  />
-                  {analysis?.full_rewritten_script && (
-                    <div className="mt-5">
-                      <FullScriptCard script={analysis.full_rewritten_script} />
-                    </div>
-                  )}
-                </WindowPane>
-              </TabsContent>
-              <TabsContent value="matrix">
-                <WindowPane title="editing-matrix.exe" accent="#FFD93D">
-                  <MatrixTab
-                    rows={analysis.editing_matrix}
-                    strictness={strictness}
-                    optimizedWords={optimizedWordCount}
-                  />
-                </WindowPane>
-              </TabsContent>
-            </Tabs>
-          </section>
+          <div className="mt-6 flex w-full flex-col gap-6">
+            {/* Tier toggle (demo) */}
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              <span className="font-mono text-[10px] font-bold uppercase tracking-widest text-black/60">
+                Tier:
+              </span>
+              <button
+                type="button"
+                onClick={() => setIsProUser((v) => !v)}
+                className="inline-flex items-center gap-2 border-2 border-black bg-white px-3 py-1.5 font-mono text-[11px] font-bold uppercase tracking-widest text-black shadow-[3px_3px_0px_0px_#000]"
+              >
+                {isProUser ? "⚡ Pro" : "🔒 Free"} · Toggle
+              </button>
+            </div>
+
+            <section className="w-full">
+              <WindowPane title="analysis.exe" accent="#FFD93D">
+                <AnalysisTab
+                  a={analysis.analysis}
+                  script={script}
+                  onJumpToDoctor={() => {
+                    if (typeof document !== "undefined") {
+                      document
+                        .getElementById("script-doctor-section")
+                        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+                    }
+                  }}
+                  strictness={activeStrictness}
+                  optimizedWords={optimizedWordCount}
+                />
+              </WindowPane>
+            </section>
+
+            <section id="script-doctor-section" className="w-full">
+              <WindowPane title="script-doctor.exe" accent="#FFD93D">
+                <DoctorTab
+                  rows={doctorRows}
+                  strictness={strictness}
+                  setStrictness={setStrictness}
+                  isProUser={isProUser}
+                />
+                <FullScriptCard script={finalAggregatedParagraphText} />
+              </WindowPane>
+            </section>
+
+            <section className="w-full">
+              <WindowPane title="editing-matrix.exe" accent="#FFD93D">
+                <MatrixTab
+                  rows={analysis.editing_matrix}
+                  strictness={activeStrictness}
+                  optimizedWords={optimizedWordCount}
+                />
+              </WindowPane>
+            </section>
+          </div>
         )}
 
         <div className="mt-6 flex items-center gap-2">
