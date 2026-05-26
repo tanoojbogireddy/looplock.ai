@@ -12,6 +12,7 @@ import {
   Lock,
   FileText,
 } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   LineChart,
   Line,
@@ -658,9 +659,12 @@ function buildDoctorRowFromSentence(sentence: string): DoctorRow {
       "Hyper-Short": hyperShort || orig,
     },
     whyItWorks: {
-      "Trim Only": "Filler purged. Core syntax preserved.",
-      Balanced: "Passive → active. ~25-30% tighter for energetic pacing.",
-      "Hyper-Short": "Core hook only. Maximum pattern interrupt.",
+      "Trim Only":
+        "Purges conversational padding words while preserving the author's original structure.",
+      Balanced:
+        "Converts clauses to active voice to achieve an energetic 145 WPM storytelling speed.",
+      "Hyper-Short":
+        "Ultra-compressed text fragment formatted for high-velocity pattern interrupts.",
     },
   };
 }
@@ -946,6 +950,7 @@ export function Workspace() {
   const [error, setError] = useState<string | null>(null);
   const [strictness, setStrictness] = useState<Strictness>("Balanced");
   const [isProUser, setIsProUser] = useState<boolean>(false);
+  const [activeTab, setActiveTab] = useState<string>("analysis");
   const FREE_LIMIT = 3;
   const [creditsRemaining, setCreditsRemaining] = useState<number>(FREE_LIMIT);
   const outOfCredits = creditsRemaining <= 0;
@@ -1145,45 +1150,62 @@ export function Workspace() {
               </button>
             </div>
 
-            <section className="w-full">
-              <WindowPane title="analysis.exe" accent="#FFD93D">
-                <AnalysisTab
-                  a={analysis.analysis}
-                  script={script}
-                  onJumpToDoctor={() => {
-                    if (typeof document !== "undefined") {
-                      document
-                        .getElementById("script-doctor-section")
-                        ?.scrollIntoView({ behavior: "smooth", block: "start" });
-                    }
-                  }}
-                  strictness={activeStrictness}
-                  optimizedWords={optimizedWordCount}
-                />
-              </WindowPane>
-            </section>
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+              <TabsList className="grid h-auto w-full grid-cols-3 gap-2 border-2 border-black bg-white p-2 shadow-[4px_4px_0px_0px_#000000]">
+                <TabsTrigger
+                  value="analysis"
+                  className="border-2 border-black bg-white px-3 py-2.5 font-mono text-[11px] font-extrabold uppercase tracking-widest text-black shadow-[2px_2px_0px_0px_#000] data-[state=active]:bg-[#FFD93D] data-[state=active]:shadow-[3px_3px_0px_0px_#000]"
+                >
+                  [ Analysis ]
+                </TabsTrigger>
+                <TabsTrigger
+                  value="doctor"
+                  className="border-2 border-black bg-white px-3 py-2.5 font-mono text-[11px] font-extrabold uppercase tracking-widest text-black shadow-[2px_2px_0px_0px_#000] data-[state=active]:bg-[#00E5D1] data-[state=active]:shadow-[3px_3px_0px_0px_#000]"
+                >
+                  [ Script Doctor ]
+                </TabsTrigger>
+                <TabsTrigger
+                  value="matrix"
+                  className="border-2 border-black bg-white px-3 py-2.5 font-mono text-[11px] font-extrabold uppercase tracking-widest text-black shadow-[2px_2px_0px_0px_#000] data-[state=active]:bg-[#FF5E5E] data-[state=active]:shadow-[3px_3px_0px_0px_#000]"
+                >
+                  [ Editing Matrix ]
+                </TabsTrigger>
+              </TabsList>
 
-            <section id="script-doctor-section" className="w-full">
-              <WindowPane title="script-doctor.exe" accent="#FFD93D">
-                <DoctorTab
-                  rows={doctorRows}
-                  strictness={strictness}
-                  setStrictness={setStrictness}
-                  isProUser={isProUser}
-                />
-                <FullScriptCard script={finalAggregatedParagraphText} />
-              </WindowPane>
-            </section>
+              <TabsContent value="analysis" className="mt-5 w-full">
+                <WindowPane title="analysis.exe" accent="#FFD93D">
+                  <AnalysisTab
+                    a={analysis.analysis}
+                    script={script}
+                    onJumpToDoctor={() => setActiveTab("doctor")}
+                    strictness={activeStrictness}
+                    optimizedWords={optimizedWordCount}
+                  />
+                </WindowPane>
+              </TabsContent>
 
-            <section className="w-full">
-              <WindowPane title="editing-matrix.exe" accent="#FFD93D">
-                <MatrixTab
-                  rows={analysis.editing_matrix}
-                  strictness={activeStrictness}
-                  optimizedWords={optimizedWordCount}
-                />
-              </WindowPane>
-            </section>
+              <TabsContent value="doctor" className="mt-5 w-full">
+                <WindowPane title="script-doctor.exe" accent="#FFD93D">
+                  <DoctorTab
+                    rows={doctorRows}
+                    strictness={strictness}
+                    setStrictness={setStrictness}
+                    isProUser={isProUser}
+                  />
+                  <FullScriptCard script={finalAggregatedParagraphText} />
+                </WindowPane>
+              </TabsContent>
+
+              <TabsContent value="matrix" className="mt-5 w-full">
+                <WindowPane title="editing-matrix.exe" accent="#FFD93D">
+                  <MatrixTab
+                    rows={analysis.editing_matrix}
+                    strictness={activeStrictness}
+                    optimizedWords={optimizedWordCount}
+                  />
+                </WindowPane>
+              </TabsContent>
+            </Tabs>
           </div>
         )}
 
