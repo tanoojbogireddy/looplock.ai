@@ -6,7 +6,6 @@ import {
   AlertTriangle,
   Zap,
   Stethoscope,
-  Gauge,
   ArrowRight,
   Copy,
   Printer,
