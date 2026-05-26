@@ -1150,7 +1150,7 @@ export function Workspace() {
               </button>
             </div>
 
-            <Tabs defaultValue="analysis" className="w-full">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsList className="grid h-auto w-full grid-cols-3 gap-2 border-2 border-black bg-white p-2 shadow-[4px_4px_0px_0px_#000000]">
                 <TabsTrigger
                   value="analysis"
@@ -1160,9 +1160,6 @@ export function Workspace() {
                 </TabsTrigger>
                 <TabsTrigger
                   value="doctor"
-                  onClick={(e) => {
-                    e.currentTarget.scrollIntoView({ behavior: "smooth", block: "nearest" });
-                  }}
                   className="border-2 border-black bg-white px-3 py-2.5 font-mono text-[11px] font-extrabold uppercase tracking-widest text-black shadow-[2px_2px_0px_0px_#000] data-[state=active]:bg-[#00E5D1] data-[state=active]:shadow-[3px_3px_0px_0px_#000]"
                 >
                   [ Script Doctor ]
@@ -1180,13 +1177,7 @@ export function Workspace() {
                   <AnalysisTab
                     a={analysis.analysis}
                     script={script}
-                    onJumpToDoctor={() => {
-                      if (typeof document !== "undefined") {
-                        document
-                          .getElementById("doctor-tab-trigger")
-                          ?.click();
-                      }
-                    }}
+                    onJumpToDoctor={() => setActiveTab("doctor")}
                     strictness={activeStrictness}
                     optimizedWords={optimizedWordCount}
                   />
