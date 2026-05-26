@@ -609,60 +609,85 @@ type DoctorRow = {
   whyItWorks: Record<Strictness, string>;
 };
 
-function buildDoctorRow(r: Analysis["script_doctor"][number]): DoctorRow {
-  const original = r.flagged_weakness ?? "";
-  const base = (r.retaining_remedy ?? "").trim();
+function buildDoctorRowFromSentence(sentence: string): DoctorRow {
+  const orig = sentence.trim();
   const filler =
-    /\b(basically|honestly|literally|actually|like,|you know|kind of|sort of|just|really|very|so,)\b/gi;
-  const trimOnly = (base || original)
+    /\b(so|like|basically|honestly|literally|actually|just|really|very|um+|uh+|kind of|sort of|you know|right\?)\b\,?/gi;
+  const trimOnly = orig
     .replace(filler, "")
     .replace(/\s{2,}/g, " ")
     .replace(/\s+([,.!?])/g, "$1")
+    .replace(/^[,\s]+/, "")
     .trim();
-  const balanced = base || trimOnly;
-  // Hyper-Short: keep first clause / first ~8 words, punchy ending
-  const firstClause = (base || trimOnly).split(/[,.;:!?]/)[0]?.trim() ?? base;
-  const words = firstClause.split(/\s+/).filter(Boolean);
-  const hyperBase = words.slice(0, 8).join(" ").trim();
-  const hyperShort = hyperBase
-    ? /[.!?]$/.test(hyperBase)
-      ? hyperBase
-      : `${hyperBase}.`
-    : balanced;
+
+  // Balanced: passive→active swaps + tighten verbose phrases, target ~25-30% shorter
+  let balanced = trimOnly
+    .replace(/\bis being\b/gi, "is")
+    .replace(/\bwas being\b/gi, "was")
+    .replace(/\bin order to\b/gi, "to")
+    .replace(/\bdue to the fact that\b/gi, "because")
+    .replace(/\bat this point in time\b/gi, "now")
+    .replace(/\ba lot of\b/gi, "many")
+    .replace(/\b(quite|simply|that|then)\b/gi, "")
+    .replace(/\s{2,}/g, " ")
+    .replace(/\s+([,.!?])/g, "$1")
+    .trim();
+  const origWords = orig.split(/\s+/).filter(Boolean);
+  const balancedWords = balanced.split(/\s+/).filter(Boolean);
+  const targetLen = Math.max(3, Math.ceil(origWords.length * 0.72));
+  if (balancedWords.length > targetLen) {
+    balanced = balancedWords.slice(0, targetLen).join(" ");
+    if (!/[.!?]$/.test(balanced)) balanced += ".";
+  }
+  if (!balanced) balanced = trimOnly || orig;
+
+  // Hyper-Short: high-impact core, 5-7 words
+  const baseForHyper = (balanced || trimOnly || orig).split(/[,;:]/)[0] || balanced;
+  const hWords = baseForHyper.split(/\s+/).filter(Boolean).slice(0, 6);
+  let hyperShort = hWords.join(" ").replace(/[,;:]+$/, "");
+  if (hyperShort && !/[.!?]$/.test(hyperShort)) hyperShort += ".";
+  if (!hyperShort) hyperShort = balanced;
+
   return {
-    originalText: original,
+    originalText: orig,
     rewritten: {
-      "Trim Only": trimOnly || balanced || original,
-      Balanced: balanced || original,
-      "Hyper-Short": hyperShort || balanced || original,
+      "Trim Only": trimOnly || orig,
+      Balanced: balanced || orig,
+      "Hyper-Short": hyperShort || orig,
     },
     whyItWorks: {
-      "Trim Only":
-        "Maintains original tone while purging low-value filler words.",
-      Balanced:
-        r.why_it_works ||
-        "Optimizes sentence length to hit an energetic 145 WPM cadence.",
-      "Hyper-Short":
-        "Maximum compression. Formatted explicitly for fast-paced pattern interrupts.",
+      "Trim Only": "Filler purged. Core syntax preserved.",
+      Balanced: "Passive → active. ~25-30% tighter for energetic pacing.",
+      "Hyper-Short": "Core hook only. Maximum pattern interrupt.",
     },
   };
+}
+
+function splitScriptToSentences(text: string): string[] {
+  const matches = text.match(/[^.!?\n]+[.!?]+/g);
+  const arr = matches && matches.length
+    ? matches
+    : text.split(/\n+/).filter(Boolean);
+  return arr.map((s) => s.trim()).filter(Boolean);
 }
 
 function DoctorTab({
   rows,
   strictness,
   setStrictness,
+  isProUser,
 }: {
-  rows: Analysis["script_doctor"];
+  rows: DoctorRow[];
   strictness: Strictness;
   setStrictness: (s: Strictness) => void;
+  isProUser: boolean;
 }) {
-  const enrichedRows = rows.map((r) => buildDoctorRow(r));
+  const activeStrictness: Strictness = isProUser ? strictness : "Balanced";
   const copyAll = async () => {
-    const text = enrichedRows
+    const text = rows
       .map(
         (row) =>
-          row.rewritten[strictness] ||
+          row.rewritten[activeStrictness] ||
           row.rewritten["Balanced"] ||
           row.originalText,
       )
@@ -675,7 +700,7 @@ function DoctorTab({
   };
   return (
     <div className="space-y-5">
-      <StrictnessPicker value={strictness} onChange={setStrictness} />
+      {isProUser && <StrictnessPicker value={strictness} onChange={setStrictness} />}
       <div className="flex items-center gap-2">
         <Stethoscope className="h-5 w-5 text-black" />
         <h3 className="font-serif text-xl font-bold text-black">Fix My Script</h3>
@@ -686,7 +711,7 @@ function DoctorTab({
           <div className="border-r-2 border-white/20 px-4 py-3 font-mono font-bold">Rewritten Line</div>
           <div className="px-4 py-3 font-mono font-bold">Why this works</div>
         </div>
-        {enrichedRows.map((row, idx) => (
+        {rows.map((row, idx) => (
           <div
             key={idx}
             className="grid grid-cols-[1fr_1fr_minmax(140px,0.7fr)] border-t-2 border-black first:border-t-0"
@@ -703,7 +728,7 @@ function DoctorTab({
               <div className="flex items-start gap-2">
                 <span className="text-base leading-none">✅</span>
                 <p className="text-sm font-bold leading-snug text-[#005C1A]">
-                  {row.rewritten[strictness] ||
+                  {row.rewritten[activeStrictness] ||
                     row.rewritten["Balanced"] ||
                     row.originalText}
                 </p>
@@ -711,7 +736,7 @@ function DoctorTab({
             </div>
             <div className="bg-white p-4">
               <p className="text-xs leading-snug text-black">
-                {row.whyItWorks[strictness] ||
+                {row.whyItWorks[activeStrictness] ||
                   row.whyItWorks["Balanced"] ||
                   ""}
               </p>
