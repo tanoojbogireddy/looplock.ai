@@ -12,6 +12,7 @@ import {
   Lock,
   FileText,
 } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   LineChart,
   Line,
@@ -658,9 +659,12 @@ function buildDoctorRowFromSentence(sentence: string): DoctorRow {
       "Hyper-Short": hyperShort || orig,
     },
     whyItWorks: {
-      "Trim Only": "Filler purged. Core syntax preserved.",
-      Balanced: "Passive → active. ~25-30% tighter for energetic pacing.",
-      "Hyper-Short": "Core hook only. Maximum pattern interrupt.",
+      "Trim Only":
+        "Purges conversational padding words while preserving the author's original structure.",
+      Balanced:
+        "Converts clauses to active voice to achieve an energetic 145 WPM storytelling speed.",
+      "Hyper-Short":
+        "Ultra-compressed text fragment formatted for high-velocity pattern interrupts.",
     },
   };
 }
