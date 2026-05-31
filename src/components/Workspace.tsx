@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Loader2,
   Sparkles,
@@ -574,6 +574,7 @@ function StrictnessPicker({
     { v: "Balanced", bg: "#00E5D1" },
     { v: "Hyper-Short", bg: "#FF5E5E" },
   ];
+  const cfg = getStrictnessConfig(value);
   return (
     <div className={`${CARD} p-4`} style={{ backgroundColor: "#FFFDF5" }}>
       <div className="font-mono text-[11px] font-bold uppercase tracking-widest text-black">
@@ -600,7 +601,7 @@ function StrictnessPicker({
         })}
       </div>
       <div className="mt-3 font-mono text-[10px] uppercase tracking-widest text-black/70">
-        Active: {getStrictnessConfig(value).wpmLabel} · Target Trim {getStrictnessConfig(value).reductionPct}%
+        Target reduction: {cfg.reductionPct}% | {cfg.wpm} WPM
       </div>
     </div>
   );
