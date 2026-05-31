@@ -682,23 +682,13 @@ function DoctorTab({
   rows,
   strictness,
   setStrictness,
-  isProUser,
 }: {
-  rows: DoctorRow[];
+  rows: Analysis["script_doctor"];
   strictness: Strictness;
   setStrictness: (s: Strictness) => void;
-  isProUser: boolean;
 }) {
-  const activeStrictness: Strictness = isProUser ? strictness : "Balanced";
   const copyAll = async () => {
-    const text = rows
-      .map(
-        (row) =>
-          row.rewritten[activeStrictness] ||
-          row.rewritten["Balanced"] ||
-          row.originalText,
-      )
-      .join("\n\n");
+    const text = rows.map((r) => r.retaining_remedy).join("\n\n");
     try {
       await navigator.clipboard.writeText(text);
     } catch {
@@ -707,15 +697,15 @@ function DoctorTab({
   };
   return (
     <div className="space-y-5">
-      {isProUser && <StrictnessPicker value={strictness} onChange={setStrictness} />}
+      <StrictnessPicker value={strictness} onChange={setStrictness} />
       <div className="flex items-center gap-2">
         <Stethoscope className="h-5 w-5 text-black" />
         <h3 className="font-serif text-xl font-bold text-black">Fix My Script</h3>
       </div>
       <div className="overflow-hidden border-2 border-black shadow-[6px_6px_0px_0px_#000000]">
         <div className="grid grid-cols-[1fr_1fr_minmax(140px,0.7fr)] border-b-2 border-black bg-black text-xs uppercase tracking-widest text-white">
-          <div className="border-r-2 border-white/20 px-4 py-3 font-mono font-bold">Original Line</div>
-          <div className="border-r-2 border-white/20 px-4 py-3 font-mono font-bold">Rewritten Line</div>
+          <div className="border-r-2 border-white/20 px-4 py-3 font-mono font-bold">Flagged Weakness</div>
+          <div className="border-r-2 border-white/20 px-4 py-3 font-mono font-bold">Retaining Remedy</div>
           <div className="px-4 py-3 font-mono font-bold">Why this works</div>
         </div>
         {rows.map((row, idx) => (
@@ -726,8 +716,8 @@ function DoctorTab({
             <div className="border-r-2 border-black bg-[#FFE5E5] p-4">
               <div className="flex items-start gap-2">
                 <span className="text-base leading-none">❌</span>
-                <p className="text-sm leading-snug text-[#B30000] line-through decoration-[#FF1F1F] decoration-2">
-                  {row.originalText}
+                <p className="text-sm leading-snug text-[#B30000]">
+                  {row.flagged_weakness}
                 </p>
               </div>
             </div>
@@ -735,17 +725,13 @@ function DoctorTab({
               <div className="flex items-start gap-2">
                 <span className="text-base leading-none">✅</span>
                 <p className="text-sm font-bold leading-snug text-[#005C1A]">
-                  {row.rewritten[activeStrictness] ||
-                    row.rewritten["Balanced"] ||
-                    row.originalText}
+                  {row.retaining_remedy}
                 </p>
               </div>
             </div>
             <div className="bg-white p-4">
               <p className="text-xs leading-snug text-black">
-                {row.whyItWorks[activeStrictness] ||
-                  row.whyItWorks["Balanced"] ||
-                  ""}
+                {row.why_it_works}
               </p>
             </div>
           </div>
