@@ -1187,10 +1187,9 @@ export function Workspace() {
               <TabsContent value="doctor" className="mt-5 w-full">
                 <WindowPane title="script-doctor.exe" accent="#FFD93D">
                   <DoctorTab
-                    rows={doctorRows}
+                    rows={analysis.script_doctor}
                     strictness={strictness}
                     setStrictness={setStrictness}
-                    isProUser={isProUser}
                   />
                   <FullScriptCard script={finalAggregatedParagraphText} />
                 </WindowPane>
