@@ -954,17 +954,18 @@ export function Workspace() {
     .trim();
   const optimizedWordCount = wordCount(finalAggregatedParagraphText);
 
-  const onAnalyze = async () => {
+  const lastAnalyzedScriptRef = useRef<string>("");
+  const runAnalyze = async (opts: { consumeCredit: boolean }) => {
     if (!script.trim()) return;
-    if (outOfCredits) return;
     if (isOverLimit) return;
+    if (opts.consumeCredit && outOfCredits) return;
     setStatus("loading");
     setError(null);
     try {
       const res = await fetch("/api/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ script }),
+        body: JSON.stringify({ script, strictness: activeStrictness }),
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({ error: res.statusText }));
@@ -972,14 +973,26 @@ export function Workspace() {
       }
       const data = (await res.json()) as Analysis;
       setAnalysis(data);
-      trackUsage();
-      setCreditsRemaining((c) => Math.max(0, c - 1));
+      lastAnalyzedScriptRef.current = script;
+      if (opts.consumeCredit) {
+        trackUsage();
+        setCreditsRemaining((c) => Math.max(0, c - 1));
+      }
       setStatus("done");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong");
       setStatus("idle");
     }
   };
+  const onAnalyze = () => runAnalyze({ consumeCredit: true });
+
+  // Re-fetch (free) when strictness changes after the first analysis on the same script.
+  useEffect(() => {
+    if (!analysis) return;
+    if (lastAnalyzedScriptRef.current !== script) return;
+    runAnalyze({ consumeCredit: false });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeStrictness]);
 
   return (
     <main className="min-h-[calc(100vh-64px)] bg-background text-foreground">
