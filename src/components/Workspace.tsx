@@ -1230,6 +1230,8 @@ export function Workspace() {
                     rows={analysis.editing_matrix}
                     strictness={activeStrictness}
                     optimizedWords={optimizedWordCount}
+                    setStrictness={setStrictness}
+                    isLoading={status === "loading"}
                   />
                 </WindowPane>
               </TabsContent>
