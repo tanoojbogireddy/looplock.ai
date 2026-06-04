@@ -962,6 +962,7 @@ function WindowPane({
 export function Workspace() {
   const [script, setScript] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "done">("idle");
+  const [refetching, setRefetching] = useState<boolean>(false);
   const [analysis, setAnalysis] = useState<Analysis | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [strictness, setStrictness] = useState<Strictness>("Balanced");
@@ -988,7 +989,11 @@ export function Workspace() {
     if (!script.trim()) return;
     if (isOverLimit) return;
     if (opts.consumeCredit && outOfCredits) return;
-    setStatus("loading");
+    if (analysis) {
+      setRefetching(true);
+    } else {
+      setStatus("loading");
+    }
     setError(null);
     try {
       const res = await fetch("/api/analyze", {
@@ -1008,9 +1013,14 @@ export function Workspace() {
         setCreditsRemaining((c) => Math.max(0, c - 1));
       }
       setStatus("done");
+      setRefetching(false);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong");
-      setStatus("idle");
+      if (analysis) {
+        setRefetching(false);
+      } else {
+        setStatus("idle");
+      }
     }
   };
   const onAnalyze = () => runAnalyze({ consumeCredit: true });
@@ -1219,6 +1229,7 @@ export function Workspace() {
                     rows={analysis.script_doctor}
                     strictness={strictness}
                     setStrictness={setStrictness}
+                    isLoading={refetching}
                   />
                   <FullScriptCard script={finalAggregatedParagraphText} />
                 </WindowPane>
@@ -1231,7 +1242,7 @@ export function Workspace() {
                     strictness={activeStrictness}
                     optimizedWords={optimizedWordCount}
                     setStrictness={setStrictness}
-                    isLoading={status === "loading"}
+                    isLoading={refetching}
                   />
                 </WindowPane>
               </TabsContent>
