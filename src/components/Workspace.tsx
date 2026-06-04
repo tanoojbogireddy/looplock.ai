@@ -682,10 +682,12 @@ function DoctorTab({
   rows,
   strictness,
   setStrictness,
+  isLoading,
 }: {
   rows: Analysis["script_doctor"];
   strictness: Strictness;
   setStrictness: (s: Strictness) => void;
+  isLoading: boolean;
 }) {
   const copyAll = async () => {
     const text = rows.map((r) => r.retaining_remedy).join("\n\n");
@@ -708,7 +710,21 @@ function DoctorTab({
           <div className="border-r-2 border-white/20 px-4 py-3 font-mono font-bold">Retaining Remedy</div>
           <div className="px-4 py-3 font-mono font-bold">Why this works</div>
         </div>
-        {rows.map((row, idx) => (
+        {isLoading
+          ? Array.from({ length: Math.max(3, rows.length || 4) }).map((_, idx) => (
+              <div
+                key={idx}
+                className="grid grid-cols-[1fr_1fr_minmax(140px,0.7fr)] border-t-2 border-black first:border-t-0"
+              >
+                {Array.from({ length: 3 }).map((__, c) => (
+                  <div key={c} className="border-r-2 border-black bg-white p-4 last:border-r-0">
+                    <div className="h-3 w-full animate-pulse rounded-sm bg-black/15" />
+                    <div className="mt-2 h-3 w-2/3 animate-pulse rounded-sm bg-black/10" />
+                  </div>
+                ))}
+              </div>
+            ))
+          : rows.map((row, idx) => (
           <div
             key={idx}
             className="grid grid-cols-[1fr_1fr_minmax(140px,0.7fr)] border-t-2 border-black first:border-t-0"
