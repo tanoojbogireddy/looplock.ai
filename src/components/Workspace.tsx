@@ -756,10 +756,14 @@ function MatrixTab({
   rows,
   strictness,
   optimizedWords,
+  setStrictness,
+  isLoading,
 }: {
   rows: Analysis["editing_matrix"];
   strictness: Strictness;
   optimizedWords: number;
+  setStrictness: (s: Strictness) => void;
+  isLoading: boolean;
 }) {
   const cfg = getStrictnessConfig(strictness);
   const trueDurationInSeconds = Math.max(
@@ -783,10 +787,13 @@ function MatrixTab({
     const t = i === rows.length - 1 ? trueDurationInSeconds : cursor;
     const stamp = secondsToStamp(t);
     cursor += interval;
-    const technique =
-      row.editing_technique?.trim() ||
-      `${row.camera_framing} + ${row.b_roll_sound_fx}`;
-    return { line: row.corrected_line, stamp, technique };
+    return {
+      line: row.corrected_line,
+      stamp,
+      cameraFraming: row.camera_framing,
+      bRollSfx: row.b_roll_sound_fx,
+      technique: row.editing_technique,
+    };
   });
 
   const exportPdf = () => {
@@ -799,6 +806,8 @@ function MatrixTab({
         <tr>
           <td>${escapeHtml(r.line)}</td>
           <td style="white-space:nowrap;font-family:monospace;">${r.stamp}</td>
+          <td>${escapeHtml(r.cameraFraming)}</td>
+          <td>${escapeHtml(r.bRollSfx)}</td>
           <td>${escapeHtml(r.technique)}</td>
         </tr>`,
       )
@@ -812,7 +821,7 @@ function MatrixTab({
         th{background:#000;color:#fff;font-size:11px;letter-spacing:.08em;text-transform:uppercase;}
       </style></head><body>
       <h1>Editor Briefing</h1>
-      <table><thead><tr><th>Line</th><th>Timestamp</th><th>Editing Technique</th></tr></thead>
+      <table><thead><tr><th>Line</th><th>Timestamp</th><th>Camera Framing</th><th>B-Roll &amp; SFX</th><th>Editing Technique</th></tr></thead>
       <tbody>${rowsHtml}</tbody></table>
       <script>window.onload=()=>{window.print();}<\/script>
       </body></html>`);
@@ -821,6 +830,7 @@ function MatrixTab({
 
   return (
     <div className="space-y-4">
+      <StrictnessPicker value={strictness} onChange={setStrictness} />
       <div className="flex items-center gap-2">
         <Scissors className="h-5 w-5 text-black" />
         <h3 className="font-serif text-xl font-bold text-black">Editor Briefing</h3>
@@ -831,22 +841,41 @@ function MatrixTab({
       </p>
       <div className="overflow-hidden border-2 border-black shadow-[6px_6px_0px_0px_#000000]">
         <div className="overflow-x-auto">
-          <table className="w-full border-collapse text-left text-sm">
+          <table className="w-full min-w-[860px] border-collapse text-left text-sm">
             <thead className="bg-black text-xs uppercase tracking-widest text-white">
               <tr>
                 <th className="border-r-2 border-white/20 px-4 py-3 font-mono font-bold">Line</th>
                 <th className="w-24 border-r-2 border-white/20 px-4 py-3 font-mono font-bold">Timestamp</th>
+                <th className="border-r-2 border-white/20 px-4 py-3 font-mono font-bold">Camera Framing</th>
+                <th className="border-r-2 border-white/20 px-4 py-3 font-mono font-bold">B-Roll &amp; SFX</th>
                 <th className="px-4 py-3 font-mono font-bold">Editing Technique</th>
               </tr>
             </thead>
             <tbody>
-              {enriched.map((row, idx) => (
+              {isLoading
+                ? Array.from({ length: Math.max(3, rows.length || 4) }).map((_, idx) => (
+                    <tr key={idx} className={`border-t-2 border-black ${idx % 2 === 0 ? "bg-white" : "bg-secondary"}`}>
+                      {Array.from({ length: 5 }).map((__, c) => (
+                        <td key={c} className="border-r-2 border-black px-4 py-4 align-top last:border-r-0">
+                          <div className="h-3 w-full animate-pulse rounded-sm bg-black/15" />
+                          <div className="mt-2 h-3 w-2/3 animate-pulse rounded-sm bg-black/10" />
+                        </td>
+                      ))}
+                    </tr>
+                  ))
+                : enriched.map((row, idx) => (
                 <tr key={idx} className={`border-t-2 border-black ${idx % 2 === 0 ? "bg-white" : "bg-secondary"}`}>
                   <td className="border-r-2 border-black px-4 py-4 align-top">
                     <p className="text-sm font-bold leading-snug text-black">"{row.line}"</p>
                   </td>
                   <td className="border-r-2 border-black px-4 py-4 align-top font-mono text-sm font-bold text-black">
                     {row.stamp}
+                  </td>
+                  <td className="border-r-2 border-black px-4 py-4 align-top text-sm text-black">
+                    {row.cameraFraming}
+                  </td>
+                  <td className="border-r-2 border-black px-4 py-4 align-top text-sm text-black">
+                    {row.bRollSfx}
                   </td>
                   <td className="px-4 py-4 align-top text-sm font-semibold text-black">{row.technique}</td>
                 </tr>
@@ -856,7 +885,7 @@ function MatrixTab({
         </div>
       </div>
       <div className="flex justify-center">
-        <button onClick={exportPdf} className={BTN_PRIMARY}>
+        <button onClick={exportPdf} disabled={isLoading} className={BTN_PRIMARY}>
           <Printer className="h-4 w-4" /> Export as PDF
         </button>
       </div>
