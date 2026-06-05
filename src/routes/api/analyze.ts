@@ -5,10 +5,10 @@ type Strictness = "Trim Only" | "Balanced" | "Hyper-Short";
 
 function strictnessDirective(s: Strictness): string {
   if (s === "Trim Only")
-    return "- Target: 12% word reduction, 135 WPM (cinematic), keep flow intact, remove only filler.";
+    return "- Target: EXACTLY ~12% word reduction, 135 WPM (cinematic), conservative polish only: remove filler, preserve sentence order and most wording.";
   if (s === "Hyper-Short")
-    return "- Target: 59% word reduction, 160 WPM (retention-max), every word earns its place, aggressive hooks.";
-  return "- Target: 28% word reduction, 145 WPM (energetic), tighten hooks, improve emotional beats.";
+    return "- Target: EXACTLY ~59% word reduction, 160 WPM (retention-max), aggressive sentence stripping: short fragments, punch verbs, no soft setup.";
+  return "- Target: EXACTLY ~28% word reduction, 145 WPM (energetic), sharp narrative hook metrics: tighter clauses, stronger contrast, clear emotional beats.";
 }
 
 function buildSystemPrompt(s: Strictness): string {
@@ -28,6 +28,13 @@ CRITICAL NICHE ALIGNMENT:
 
 STRICTNESS MODE: ${s}
 ${strictnessDirective(s)}
+
+STATE-SPECIFIC OUTPUT RULE:
+- The selected STRICTNESS MODE is the source of truth. Do NOT reuse wording, row counts, or editing techniques from another mode.
+- For Trim Only, retaining_remedy and full_rewritten_script should remain recognizably close to the source with only about 12% fewer words.
+- For Balanced, retaining_remedy and full_rewritten_script must be visibly tighter than Trim Only with about 28% fewer words.
+- For Hyper-Short, retaining_remedy and full_rewritten_script must be dramatically shorter than Balanced with about 59% fewer words.
+- If the same input is requested under different modes, the text volume, pacing language, and editor instructions must be materially different.
 
 Return ONLY structured data via the provided tool. No prose, no markdown.
 
@@ -62,6 +69,7 @@ SCRIPT DOCTOR RULES (produce 2-5 rows for the weakest lines):
 EDITING MATRIX RULES (produce one row per spoken line of the rewritten script, 3-8 rows):
 - corrected_line: the rewritten sentence as it should be spoken on camera.
 - timestamps are computed by the UI against the active strictness pacing (${wpm} WPM) — do not return them.
+- Match editing_technique to strictness: Trim Only = slow cinematic pans, smooth transitions, continuous visual blocks; Balanced = clean punch-in cuts and rhythmic 3-5 second changes; Hyper-Short = high-frequency jump-cuts, flash-frames, split-second sound cues, rapid pattern interrupts.
 - camera_framing, b_roll_sound_fx, editing_technique MUST be 100% customized to the detected niche. Do NOT use generic placeholders. Examples per niche:
   • Finance → candlestick chart overlays, profit dashboards, cash-register cha-ching SFX, rapid mechanical keyboard typing.
   • Real Estate → wide-angle interior sweeps, marble kitchen macro, drone neighborhood flyovers, door-unlock click, luxury ambient lofi swoosh.
