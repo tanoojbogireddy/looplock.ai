@@ -219,7 +219,12 @@ export const Route = createFileRoute("/api/analyze")({
             });
           }
           const parsed = JSON.parse(argsStr);
-          return Response.json(parsed);
+          return new Response(JSON.stringify(parsed), {
+            headers: {
+              "Content-Type": "application/json",
+              "Cache-Control": "no-store, max-age=0",
+            },
+          });
         } catch (err) {
           const message = err instanceof Error ? err.message : "Unknown error";
           return new Response(JSON.stringify({ error: message }), {
