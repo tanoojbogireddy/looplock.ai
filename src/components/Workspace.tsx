@@ -1019,6 +1019,17 @@ export function Workspace() {
     }
   };
 
+  const handleScriptChange = (next: string) => {
+    setScript(next);
+    abortRef.current?.abort();
+    requestSeqRef.current += 1;
+    lastAnalyzedScriptRef.current = "";
+    setAnalysis(null);
+    setRefetching(false);
+    setStatus("idle");
+    setError(null);
+  };
+
   // Re-fetch (free) when strictness changes after the first analysis on the same script.
   useEffect(() => {
     if (!analysis) return;
@@ -1050,7 +1061,7 @@ export function Workspace() {
           <WindowPane title="input.txt" accent="#9FE7F5">
               <textarea
                 value={script}
-                onChange={(e) => setScript(e.target.value)}
+                onChange={(e) => handleScriptChange(e.target.value)}
                 placeholder="Drop ANY raw script here (English, Telugu, Hinglish, any language)…"
                 rows={16}
                 className="w-full resize-none border-2 border-black bg-white p-4 font-mono text-sm leading-relaxed text-black placeholder:text-muted-foreground focus:outline-none"
