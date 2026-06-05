@@ -47,6 +47,15 @@ type Analysis = {
   full_rewritten_script: string;
 };
 
+function clearGeneratedPanels(previous: Analysis): Analysis {
+  return {
+    ...previous,
+    script_doctor: [],
+    editing_matrix: [],
+    full_rewritten_script: "",
+  };
+}
+
 const CARD = "border-2 border-black bg-white shadow-[6px_6px_0px_0px_#000000]";
 const PANE = "border-2 border-black bg-white shadow-[8px_8px_0px_0px_#000000]";
 const BTN_PRIMARY =
@@ -607,77 +616,6 @@ function StrictnessPicker({
   );
 }
 
-type DoctorRow = {
-  originalText: string;
-  rewritten: Record<Strictness, string>;
-  whyItWorks: Record<Strictness, string>;
-};
-
-function buildDoctorRowFromSentence(sentence: string): DoctorRow {
-  const orig = sentence.trim();
-  const filler =
-    /\b(so|like|basically|honestly|literally|actually|just|really|very|um+|uh+|kind of|sort of|you know|right\?)\b\,?/gi;
-  const trimOnly = orig
-    .replace(filler, "")
-    .replace(/\s{2,}/g, " ")
-    .replace(/\s+([,.!?])/g, "$1")
-    .replace(/^[,\s]+/, "")
-    .trim();
-
-  // Balanced: passive→active swaps + tighten verbose phrases, target ~25-30% shorter
-  let balanced = trimOnly
-    .replace(/\bis being\b/gi, "is")
-    .replace(/\bwas being\b/gi, "was")
-    .replace(/\bin order to\b/gi, "to")
-    .replace(/\bdue to the fact that\b/gi, "because")
-    .replace(/\bat this point in time\b/gi, "now")
-    .replace(/\ba lot of\b/gi, "many")
-    .replace(/\b(quite|simply|that|then)\b/gi, "")
-    .replace(/\s{2,}/g, " ")
-    .replace(/\s+([,.!?])/g, "$1")
-    .trim();
-  const origWords = orig.split(/\s+/).filter(Boolean);
-  const balancedWords = balanced.split(/\s+/).filter(Boolean);
-  const targetLen = Math.max(3, Math.ceil(origWords.length * 0.72));
-  if (balancedWords.length > targetLen) {
-    balanced = balancedWords.slice(0, targetLen).join(" ");
-    if (!/[.!?]$/.test(balanced)) balanced += ".";
-  }
-  if (!balanced) balanced = trimOnly || orig;
-
-  // Hyper-Short: high-impact core, 5-7 words
-  const baseForHyper = (balanced || trimOnly || orig).split(/[,;:]/)[0] || balanced;
-  const hWords = baseForHyper.split(/\s+/).filter(Boolean).slice(0, 6);
-  let hyperShort = hWords.join(" ").replace(/[,;:]+$/, "");
-  if (hyperShort && !/[.!?]$/.test(hyperShort)) hyperShort += ".";
-  if (!hyperShort) hyperShort = balanced;
-
-  return {
-    originalText: orig,
-    rewritten: {
-      "Trim Only": trimOnly || orig,
-      Balanced: balanced || orig,
-      "Hyper-Short": hyperShort || orig,
-    },
-    whyItWorks: {
-      "Trim Only":
-        "Purges conversational padding words while preserving the author's original structure.",
-      Balanced:
-        "Converts clauses to active voice to achieve an energetic 145 WPM storytelling speed.",
-      "Hyper-Short":
-        "Ultra-compressed text fragment formatted for high-velocity pattern interrupts.",
-    },
-  };
-}
-
-function splitScriptToSentences(text: string): string[] {
-  const matches = text.match(/[^.!?\n]+[.!?]+/g);
-  const arr = matches && matches.length
-    ? matches
-    : text.split(/\n+/).filter(Boolean);
-  return arr.map((s) => s.trim()).filter(Boolean);
-}
-
 function DoctorTab({
   rows,
   strictness,
@@ -917,7 +855,7 @@ function escapeHtml(s: string) {
     .replace(/"/g, "&quot;");
 }
 
-function FullScriptCard({ script }: { script: string }) {
+function FullScriptCard({ script, isLoading }: { script: string; isLoading: boolean }) {
   const [copied, setCopied] = useState(false);
   const copy = async () => {
     try {
@@ -928,6 +866,25 @@ function FullScriptCard({ script }: { script: string }) {
       /* no-op */
     }
   };
+  if (isLoading) {
+    return (
+      <div className={`${CARD} mt-6 p-5`} style={{ backgroundColor: "#FFFDF5" }}>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <FileText className="h-5 w-5 text-black" />
+            <h3 className="font-serif text-lg font-bold text-black">Full Optimized Script</h3>
+          </div>
+          <Loader2 className="h-4 w-4 animate-spin text-black" />
+        </div>
+        <div className="mt-4 border-2 border-black bg-white p-4">
+          <div className="h-3 w-full animate-pulse rounded-sm bg-black/15" />
+          <div className="mt-3 h-3 w-11/12 animate-pulse rounded-sm bg-black/10" />
+          <div className="mt-3 h-3 w-4/5 animate-pulse rounded-sm bg-black/10" />
+          <div className="mt-3 h-3 w-2/3 animate-pulse rounded-sm bg-black/10" />
+        </div>
+      </div>
+    );
+  }
   if (!script) return null;
   return (
     <div className={`${CARD} mt-6 p-5`} style={{ backgroundColor: "#FFFDF5" }}>
@@ -989,24 +946,31 @@ export function Workspace() {
   const outOfCredits = creditsRemaining <= 0;
   const currentWordCount = wordCount(script);
   const isOverLimit = currentWordCount > WORD_LIMIT;
-
-  // Sentence-level Script Doctor pipeline: derive rows from the user's actual script.
-  const activeStrictness: Strictness = isProUser ? strictness : "Balanced";
-  const sentenceList = splitScriptToSentences(script);
-  const doctorRows: DoctorRow[] = sentenceList.map(buildDoctorRowFromSentence);
-  const finalAggregatedParagraphText = doctorRows
-    .map((r) => r.rewritten[activeStrictness] || r.rewritten["Balanced"] || r.originalText)
-    .join(" ")
-    .trim();
-  const optimizedWordCount = wordCount(finalAggregatedParagraphText);
+  const generatedScript = analysis?.full_rewritten_script ?? "";
+  const optimizedWordCount = analysis
+    ? wordCount(generatedScript) || Math.max(1, Math.round(currentWordCount * (1 - getStrictnessConfig(strictness).reductionPct / 100)))
+    : 0;
+  const visibleDoctorRows = refetching ? [] : analysis?.script_doctor ?? [];
+  const visibleMatrixRows = refetching ? [] : analysis?.editing_matrix ?? [];
+  const visibleFullScript = refetching ? "" : generatedScript;
 
   const lastAnalyzedScriptRef = useRef<string>("");
-  const runAnalyze = async (opts: { consumeCredit: boolean }) => {
+  const requestSeqRef = useRef(0);
+  const abortRef = useRef<AbortController | null>(null);
+  const runAnalyze = async (opts: { consumeCredit: boolean; strictnessOverride?: Strictness }) => {
     if (!script.trim()) return;
     if (isOverLimit) return;
     if (opts.consumeCredit && outOfCredits) return;
-    if (analysis) {
+    const selectedStrictness = opts.strictnessOverride ?? strictness;
+    const hasExistingAnalysis = Boolean(analysis);
+    const requestId = requestSeqRef.current + 1;
+    requestSeqRef.current = requestId;
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+    if (hasExistingAnalysis) {
       setRefetching(true);
+      setAnalysis((prev) => (prev ? clearGeneratedPanels(prev) : prev));
     } else {
       setStatus("loading");
     }
@@ -1015,13 +979,16 @@ export function Workspace() {
       const res = await fetch("/api/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ script, strictness: activeStrictness }),
+        cache: "no-store",
+        signal: controller.signal,
+        body: JSON.stringify({ script, strictness: selectedStrictness }),
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({ error: res.statusText }));
         throw new Error(body.error || `Request failed (${res.status})`);
       }
       const data = (await res.json()) as Analysis;
+      if (requestId !== requestSeqRef.current) return;
       setAnalysis(data);
       lastAnalyzedScriptRef.current = script;
       if (opts.consumeCredit) {
@@ -1031,23 +998,34 @@ export function Workspace() {
       setStatus("done");
       setRefetching(false);
     } catch (e) {
+      if (e instanceof DOMException && e.name === "AbortError") return;
+      if (requestId !== requestSeqRef.current) return;
       setError(e instanceof Error ? e.message : "Something went wrong");
-      if (analysis) {
+      if (hasExistingAnalysis) {
         setRefetching(false);
       } else {
         setStatus("idle");
       }
     }
   };
-  const onAnalyze = () => runAnalyze({ consumeCredit: true });
+  const onAnalyze = () => runAnalyze({ consumeCredit: true, strictnessOverride: strictness });
+
+  const handleStrictnessChange = (next: Strictness) => {
+    if (next === strictness) return;
+    setStrictness(next);
+    if (analysis && lastAnalyzedScriptRef.current === script) {
+      setRefetching(true);
+      setAnalysis((prev) => (prev ? clearGeneratedPanels(prev) : prev));
+    }
+  };
 
   // Re-fetch (free) when strictness changes after the first analysis on the same script.
   useEffect(() => {
     if (!analysis) return;
     if (lastAnalyzedScriptRef.current !== script) return;
-    runAnalyze({ consumeCredit: false });
+    runAnalyze({ consumeCredit: false, strictnessOverride: strictness });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeStrictness]);
+  }, [strictness]);
 
   return (
     <main className="min-h-[calc(100vh-64px)] bg-background text-foreground">
@@ -1233,7 +1211,7 @@ export function Workspace() {
                     a={analysis.analysis}
                     script={script}
                     onJumpToDoctor={() => setActiveTab("doctor")}
-                    strictness={activeStrictness}
+                    strictness={strictness}
                     optimizedWords={optimizedWordCount}
                   />
                 </WindowPane>
@@ -1242,22 +1220,22 @@ export function Workspace() {
               <TabsContent value="doctor" className="mt-5 w-full">
                 <WindowPane title="script-doctor.exe" accent="#FFD93D">
                   <DoctorTab
-                    rows={analysis.script_doctor}
+                    rows={visibleDoctorRows}
                     strictness={strictness}
-                    setStrictness={setStrictness}
+                    setStrictness={handleStrictnessChange}
                     isLoading={refetching}
                   />
-                  <FullScriptCard script={finalAggregatedParagraphText} />
+                  <FullScriptCard script={visibleFullScript} isLoading={refetching} />
                 </WindowPane>
               </TabsContent>
 
               <TabsContent value="matrix" className="mt-5 w-full">
                 <WindowPane title="editing-matrix.exe" accent="#FFD93D">
                   <MatrixTab
-                    rows={analysis.editing_matrix}
-                    strictness={activeStrictness}
+                    rows={visibleMatrixRows}
+                    strictness={strictness}
                     optimizedWords={optimizedWordCount}
-                    setStrictness={setStrictness}
+                    setStrictness={handleStrictnessChange}
                     isLoading={refetching}
                   />
                 </WindowPane>
