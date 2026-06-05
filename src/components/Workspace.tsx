@@ -777,7 +777,7 @@ function MatrixTab({
       <h1>Editor Briefing</h1>
       <table><thead><tr><th>Line</th><th>Timestamp</th><th>Camera Framing</th><th>B-Roll &amp; SFX</th><th>Editing Technique</th></tr></thead>
       <tbody>${rowsHtml}</tbody></table>
-      <script>window.onload=()=>{window.print();}<\/script>
+      <script>window.onload=()=>{window.print();}</script>
       </body></html>`);
     w.document.close();
   };
