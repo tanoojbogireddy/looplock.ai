@@ -67,8 +67,14 @@ function parseAnalysisResponse(rawResponse: string): Analysis {
 
   const start = cleaned.indexOf("{");
   const end = cleaned.lastIndexOf("}");
-  if (start === -1) throw new Error("No JSON payload found in analysis response. Please try again.");
-  if (end <= start) throw new Error("Analysis response was cut off before it finished. Try a shorter script.");
+  if (start === -1) {
+    console.error("No JSON payload found in analysis response", { rawResponse });
+    throw new Error("No JSON payload found in analysis response. Please try again.");
+  }
+  if (end <= start) {
+    console.error("Analysis response was cut off before it finished", { rawResponse, sanitizedResponse: cleaned });
+    throw new Error("Analysis response was cut off before it finished. Try a shorter script.");
+  }
 
   const candidate = cleaned.slice(start, end + 1);
   try {
