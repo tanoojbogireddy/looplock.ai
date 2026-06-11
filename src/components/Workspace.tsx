@@ -12,7 +12,7 @@ import {
   Lock,
   FileText,
 } from "lucide-react";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   LineChart,
   Line,
@@ -1216,42 +1216,56 @@ export function Workspace() {
                 </TabsTrigger>
               </TabsList>
 
-              <TabsContent value="analysis" className="mt-5 w-full">
-                <WindowPane title="analysis.exe" accent="#FFD93D">
-                  <AnalysisTab
-                    a={analysis.analysis}
-                    script={script}
-                    onJumpToDoctor={() => setActiveTab("doctor")}
-                    strictness={strictness}
-                    optimizedWords={optimizedWordCount}
-                  />
-                </WindowPane>
-              </TabsContent>
-
-              <TabsContent value="doctor" className="mt-5 w-full">
-                <WindowPane title="script-doctor.exe" accent="#FFD93D">
-                  <DoctorTab
-                    rows={visibleDoctorRows}
-                    strictness={strictness}
-                    setStrictness={handleStrictnessChange}
-                    isLoading={refetching}
-                  />
-                  <FullScriptCard script={visibleFullScript} isLoading={refetching} />
-                </WindowPane>
-              </TabsContent>
-
-              <TabsContent value="matrix" className="mt-5 w-full">
-                <WindowPane title="editing-matrix.exe" accent="#FFD93D">
-                  <MatrixTab
-                    rows={visibleMatrixRows}
-                    strictness={strictness}
-                    optimizedWords={optimizedWordCount}
-                    setStrictness={handleStrictnessChange}
-                    isLoading={refetching}
-                  />
-                </WindowPane>
-              </TabsContent>
             </Tabs>
+
+            {/* Keep-alive panels: all three stay mounted; visibility toggled via display. */}
+            <div
+              className="mt-5 w-full"
+              style={{ display: activeTab === "analysis" ? "block" : "none" }}
+              aria-hidden={activeTab !== "analysis"}
+            >
+              <WindowPane title="analysis.exe" accent="#FFD93D">
+                <AnalysisTab
+                  a={analysis.analysis}
+                  script={script}
+                  onJumpToDoctor={() => setActiveTab("doctor")}
+                  strictness={strictness}
+                  optimizedWords={optimizedWordCount}
+                />
+              </WindowPane>
+            </div>
+
+            <div
+              className="mt-5 w-full"
+              style={{ display: activeTab === "doctor" ? "block" : "none" }}
+              aria-hidden={activeTab !== "doctor"}
+            >
+              <WindowPane title="script-doctor.exe" accent="#FFD93D">
+                <DoctorTab
+                  rows={visibleDoctorRows}
+                  strictness={strictness}
+                  setStrictness={handleStrictnessChange}
+                  isLoading={refetching}
+                />
+                <FullScriptCard script={visibleFullScript} isLoading={refetching} />
+              </WindowPane>
+            </div>
+
+            <div
+              className="mt-5 w-full"
+              style={{ display: activeTab === "matrix" ? "block" : "none" }}
+              aria-hidden={activeTab !== "matrix"}
+            >
+              <WindowPane title="editing-matrix.exe" accent="#FFD93D">
+                <MatrixTab
+                  rows={visibleMatrixRows}
+                  strictness={strictness}
+                  optimizedWords={optimizedWordCount}
+                  setStrictness={handleStrictnessChange}
+                  isLoading={refetching}
+                />
+              </WindowPane>
+            </div>
           </div>
         )}
 
