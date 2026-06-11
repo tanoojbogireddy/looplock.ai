@@ -987,8 +987,31 @@ export function Workspace() {
         const body = await res.json().catch(() => ({ error: res.statusText }));
         throw new Error(body.error || `Request failed (${res.status})`);
       }
-      const data = (await res.json()) as Analysis;
+      // Accumulate the full response body as text, then parse once at completion.
+      // Defensive: never JSON.parse partial chunks mid-stream.
+      let fullResponse = "";
+      if (res.body) {
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          fullResponse += decoder.decode(value, { stream: true });
+        }
+        fullResponse += decoder.decode();
+      } else {
+        fullResponse = await res.text();
+      }
       if (requestId !== requestSeqRef.current) return;
+      let data: Analysis;
+      try {
+        data = JSON.parse(fullResponse) as Analysis;
+      } catch {
+        throw new Error("Could not parse analysis response. Please try again.");
+      }
+      if (!data || !data.analysis || !data.script_doctor || !data.editing_matrix) {
+        throw new Error("Incomplete analysis payload. Please try again.");
+      }
       setAnalysis(data);
       lastAnalyzedScriptRef.current = script;
       if (opts.consumeCredit) {

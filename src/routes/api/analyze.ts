@@ -215,7 +215,7 @@ export const Route = createFileRoute("/api/analyze")({
               "Content-Type": "application/json",
             },
             body: JSON.stringify({
-              model: "google/gemini-3.5-flash",
+              model: "google/gemini-2.5-flash",
               messages: [
                 { role: "system", content: buildSystemPrompt(strictness) },
                 { role: "user", content: `STRICTNESS MODE: ${strictness}\n\nAudit and rewrite this script:\n\n${script}` },
