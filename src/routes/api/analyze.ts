@@ -154,7 +154,11 @@ STATE-SPECIFIC OUTPUT RULE:
 - For Hyper-Short, retaining_remedy and full_rewritten_script must be dramatically shorter than Balanced with about 59% fewer words.
 - If the same input is requested under different modes, the text volume, pacing language, and editor instructions must be materially different.
 
-Return ONLY structured data via the provided tool. No prose, no markdown.
+ABSOLUTE FORMAT LOCK:
+- Return ONLY one complete valid JSON object matching the provided tool schema.
+- Omit conversational filler, intro text, explanations, headings, and markdown.
+- Do NOT wrap output in markdown fences such as \`\`\`json or \`\`\`.
+- The tool/function arguments must be parseable by JSON.parse with no cleanup.
 
 CHART DATA RULES:
 - Both original_chart_data and optimized_chart_data must be exactly 11 integers, each 0-100.
@@ -330,14 +334,27 @@ export const Route = createFileRoute("/api/analyze")({
             });
           }
 
-          const argsStr = await readStreamedToolArguments(aiRes);
-          if (!argsStr) {
-            return new Response(JSON.stringify({ error: "AI returned no structured output" }), {
+          const streamed = await readStreamedStructuredOutput(aiRes);
+          const rawStructuredOutput = streamed.toolArguments || streamed.content;
+          if (!rawStructuredOutput) {
+            console.error("AI returned no structured output", {
+              finishReason: streamed.finishReason,
+              rawSse: streamed.rawSse,
+            });
+            return new Response(JSON.stringify({ error: "AI returned empty structured output. Please try again." }), {
               status: 502,
               headers: { "Content-Type": "application/json" },
             });
           }
-          const parsed = JSON.parse(argsStr);
+          if (streamed.finishReason === "length") {
+            console.error("AI structured output was truncated", { rawResponse: rawStructuredOutput });
+            return new Response(JSON.stringify({ error: "AI response was cut off before it finished. Try a shorter script." }), {
+              status: 502,
+              headers: { "Content-Type": "application/json" },
+            });
+          }
+
+          const parsed = parseAiJson(rawStructuredOutput);
           return new Response(JSON.stringify(parsed), {
             headers: {
               "Content-Type": "application/json",
