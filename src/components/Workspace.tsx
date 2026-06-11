@@ -56,6 +56,33 @@ function clearGeneratedPanels(previous: Analysis): Analysis {
   };
 }
 
+function parseAnalysisResponse(rawResponse: string): Analysis {
+  const cleaned = rawResponse
+    .replace(/^\uFEFF/, "")
+    .replace(/```(?:json)?/gi, "")
+    .replace(/```/g, "")
+    .trim();
+
+  if (!cleaned) throw new Error("Empty analysis response. Please try again.");
+
+  const start = cleaned.indexOf("{");
+  const end = cleaned.lastIndexOf("}");
+  if (start === -1) throw new Error("No JSON payload found in analysis response. Please try again.");
+  if (end <= start) throw new Error("Analysis response was cut off before it finished. Try a shorter script.");
+
+  const candidate = cleaned.slice(start, end + 1);
+  try {
+    return JSON.parse(candidate) as Analysis;
+  } catch (error) {
+    console.error("Failed to parse analysis response", {
+      rawResponse,
+      sanitizedResponse: candidate,
+      error,
+    });
+    throw new Error("Could not parse analysis response. Please try again.");
+  }
+}
+
 const CARD = "border-2 border-black bg-white shadow-[6px_6px_0px_0px_#000000]";
 const PANE = "border-2 border-black bg-white shadow-[8px_8px_0px_0px_#000000]";
 const BTN_PRIMARY =
@@ -1003,12 +1030,7 @@ export function Workspace() {
         fullResponse = await res.text();
       }
       if (requestId !== requestSeqRef.current) return;
-      let data: Analysis;
-      try {
-        data = JSON.parse(fullResponse) as Analysis;
-      } catch {
-        throw new Error("Could not parse analysis response. Please try again.");
-      }
+      const data = parseAnalysisResponse(fullResponse);
       if (!data || !data.analysis || !data.script_doctor || !data.editing_matrix) {
         throw new Error("Incomplete analysis payload. Please try again.");
       }
