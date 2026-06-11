@@ -40,8 +40,9 @@ function extractJsonCandidate(raw: string): string {
 }
 
 function parseAiJson<T>(raw: string): T {
-  const candidate = extractJsonCandidate(raw);
+  let candidate = "";
   try {
+    candidate = extractJsonCandidate(raw);
     return JSON.parse(candidate) as T;
   } catch (error) {
     console.error("Failed to parse AI structured output", {
@@ -49,7 +50,10 @@ function parseAiJson<T>(raw: string): T {
       sanitizedResponse: candidate,
       error,
     });
-    throw new Error("AI returned invalid or incomplete structured output");
+    const message = error instanceof Error && error.message.includes("cut off")
+      ? "AI response was cut off before it finished. Try a shorter script."
+      : "AI returned invalid or incomplete structured output";
+    throw new Error(message);
   }
 }
 
