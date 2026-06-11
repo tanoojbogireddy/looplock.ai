@@ -178,13 +178,16 @@ export const Route = createFileRoute("/api/analyze")({
               "Content-Type": "application/json",
             },
             body: JSON.stringify({
-              model: "google/gemini-2.5-flash",
+              model: "google/gemini-3.5-flash",
               messages: [
                 { role: "system", content: buildSystemPrompt(strictness) },
                 { role: "user", content: `STRICTNESS MODE: ${strictness}\n\nAudit and rewrite this script:\n\n${script}` },
               ],
               tools: [TOOL],
               tool_choice: { type: "function", function: { name: "emit_retention_audit" } },
+              temperature: 0.1,
+              max_tokens: 1536,
+              stream: true,
             }),
           });
 
@@ -209,9 +212,7 @@ export const Route = createFileRoute("/api/analyze")({
             });
           }
 
-          const payload = await aiRes.json();
-          const toolCall = payload?.choices?.[0]?.message?.tool_calls?.[0];
-          const argsStr = toolCall?.function?.arguments;
+          const argsStr = await readStreamedToolArguments(aiRes);
           if (!argsStr) {
             return new Response(JSON.stringify({ error: "AI returned no structured output" }), {
               status: 502,
