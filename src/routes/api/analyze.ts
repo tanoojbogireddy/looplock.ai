@@ -3,41 +3,126 @@ import { createFileRoute } from "@tanstack/react-router";
 
 type Strictness = "Trim Only" | "Balanced" | "Hyper-Short";
 
-async function readStreamedToolArguments(res: Response): Promise<string> {
-  if (!res.body) return "";
+type StreamedAiOutput = {
+  toolArguments: string;
+  content: string;
+  rawSse: string;
+  finishReason?: string;
+};
+
+function stripJsonMarkdown(raw: string): string {
+  return raw
+    .replace(/^\uFEFF/, "")
+    .replace(/```(?:json)?/gi, "")
+    .replace(/```/g, "")
+    .trim();
+}
+
+function extractJsonCandidate(raw: string): string {
+  const cleaned = stripJsonMarkdown(raw);
+  if (!cleaned) throw new Error("AI returned empty structured output");
+  try {
+    JSON.parse(cleaned);
+    return cleaned;
+  } catch {
+    // Continue to boundary extraction below.
+  }
+
+  const objectStart = cleaned.indexOf("{");
+  const arrayStart = cleaned.indexOf("[");
+  const useArray = arrayStart !== -1 && (objectStart === -1 || arrayStart < objectStart);
+  const start = useArray ? arrayStart : objectStart;
+  const end = useArray ? cleaned.lastIndexOf("]") : cleaned.lastIndexOf("}");
+
+  if (start === -1) throw new Error("No valid JSON structure found in AI response");
+  if (end <= start) throw new Error("AI response was cut off before the JSON completed");
+  return cleaned.slice(start, end + 1).trim();
+}
+
+function parseAiJson<T>(raw: string): T {
+  let candidate = "";
+  try {
+    candidate = extractJsonCandidate(raw);
+    return JSON.parse(candidate) as T;
+  } catch (error) {
+    console.error("Failed to parse AI structured output", {
+      rawResponse: raw,
+      sanitizedResponse: candidate,
+      error,
+    });
+    const message = error instanceof Error && error.message.includes("cut off")
+      ? "AI response was cut off before it finished. Try a shorter script."
+      : "AI returned invalid or incomplete structured output";
+    throw new Error(message);
+  }
+}
+
+async function readStreamedStructuredOutput(res: Response): Promise<StreamedAiOutput> {
+  if (!res.body) return { toolArguments: "", content: "", rawSse: "" };
   const reader = res.body.getReader();
   const decoder = new TextDecoder();
   let buffer = "";
-  let args = "";
+  let toolArguments = "";
+  let content = "";
+  let rawSse = "";
+  let finishReason: string | undefined;
+
+  const consumeLine = (rawLine: string) => {
+    const line = rawLine.trim();
+    if (!line.startsWith("data:")) return;
+    const data = line.slice(5).trim();
+    if (!data || data === "[DONE]") return;
+    try {
+      const chunk = JSON.parse(data);
+      const choice = chunk?.choices?.[0];
+      if (typeof choice?.finish_reason === "string") finishReason = choice.finish_reason;
+
+      const delta = choice?.delta;
+      const toolCalls = delta?.tool_calls;
+      if (Array.isArray(toolCalls)) {
+        for (const tc of toolCalls) {
+          const piece = tc?.function?.arguments;
+          if (typeof piece === "string") toolArguments += piece;
+        }
+      }
+
+      const legacyArgs = delta?.function_call?.arguments;
+      if (typeof legacyArgs === "string") toolArguments += legacyArgs;
+      if (typeof delta?.content === "string") content += delta.content;
+
+      const message = choice?.message;
+      const fallbackArgs = message?.tool_calls?.[0]?.function?.arguments;
+      if (typeof fallbackArgs === "string" && fallbackArgs.length > toolArguments.length) {
+        toolArguments = fallbackArgs;
+      }
+      if (typeof message?.content === "string" && message.content.length > content.length) {
+        content = message.content;
+      }
+    } catch {
+      // Skip malformed SSE fragments; the raw stream is logged if final parsing fails.
+    }
+  };
+
   while (true) {
     const { value, done } = await reader.read();
     if (done) break;
-    buffer += decoder.decode(value, { stream: true });
+    const decoded = decoder.decode(value, { stream: true });
+    rawSse += decoded;
+    buffer += decoded;
     let nl;
     while ((nl = buffer.indexOf("\n")) !== -1) {
-      const rawLine = buffer.slice(0, nl).trim();
+      const rawLine = buffer.slice(0, nl);
       buffer = buffer.slice(nl + 1);
-      if (!rawLine.startsWith("data:")) continue;
-      const data = rawLine.slice(5).trim();
-      if (!data || data === "[DONE]") continue;
-      try {
-        const chunk = JSON.parse(data);
-        const delta = chunk?.choices?.[0]?.delta;
-        const toolCalls = delta?.tool_calls;
-        if (Array.isArray(toolCalls)) {
-          for (const tc of toolCalls) {
-            const piece = tc?.function?.arguments;
-            if (typeof piece === "string") args += piece;
-          }
-        }
-        const fallback = chunk?.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments;
-        if (typeof fallback === "string" && !args) args = fallback;
-      } catch {
-        // skip malformed chunk
-      }
+      consumeLine(rawLine);
     }
   }
-  return args;
+  const trailing = decoder.decode();
+  if (trailing) {
+    rawSse += trailing;
+    buffer += trailing;
+  }
+  if (buffer.trim()) consumeLine(buffer);
+  return { toolArguments, content, rawSse, finishReason };
 }
 
 function strictnessDirective(s: Strictness): string {
@@ -73,7 +158,11 @@ STATE-SPECIFIC OUTPUT RULE:
 - For Hyper-Short, retaining_remedy and full_rewritten_script must be dramatically shorter than Balanced with about 59% fewer words.
 - If the same input is requested under different modes, the text volume, pacing language, and editor instructions must be materially different.
 
-Return ONLY structured data via the provided tool. No prose, no markdown.
+ABSOLUTE FORMAT LOCK:
+- Return ONLY one complete valid JSON object matching the provided tool schema.
+- Omit conversational filler, intro text, explanations, headings, and markdown.
+- Do NOT wrap output in markdown fences such as \`\`\`json or \`\`\`.
+- The tool/function arguments must be parseable by JSON.parse with no cleanup.
 
 CHART DATA RULES:
 - Both original_chart_data and optimized_chart_data must be exactly 11 integers, each 0-100.
@@ -249,14 +338,27 @@ export const Route = createFileRoute("/api/analyze")({
             });
           }
 
-          const argsStr = await readStreamedToolArguments(aiRes);
-          if (!argsStr) {
-            return new Response(JSON.stringify({ error: "AI returned no structured output" }), {
+          const streamed = await readStreamedStructuredOutput(aiRes);
+          const rawStructuredOutput = streamed.toolArguments || streamed.content;
+          if (!rawStructuredOutput) {
+            console.error("AI returned no structured output", {
+              finishReason: streamed.finishReason,
+              rawSse: streamed.rawSse,
+            });
+            return new Response(JSON.stringify({ error: "AI returned empty structured output. Please try again." }), {
               status: 502,
               headers: { "Content-Type": "application/json" },
             });
           }
-          const parsed = JSON.parse(argsStr);
+          if (streamed.finishReason === "length") {
+            console.error("AI structured output was truncated", { rawResponse: rawStructuredOutput });
+            return new Response(JSON.stringify({ error: "AI response was cut off before it finished. Try a shorter script." }), {
+              status: 502,
+              headers: { "Content-Type": "application/json" },
+            });
+          }
+
+          const parsed = parseAiJson(rawStructuredOutput);
           return new Response(JSON.stringify(parsed), {
             headers: {
               "Content-Type": "application/json",

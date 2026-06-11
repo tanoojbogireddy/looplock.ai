@@ -141,6 +141,34 @@ type GeminiOutput = {
   dropoutReason: string;
 };
 
+function stripJsonMarkdown(raw: string): string {
+  return raw
+    .replace(/^\uFEFF/, "")
+    .replace(/```(?:json)?/gi, "")
+    .replace(/```/g, "")
+    .trim();
+}
+
+function parseAiJson<T>(raw: string): T {
+  const cleaned = stripJsonMarkdown(raw);
+  const start = cleaned.indexOf("{");
+  const end = cleaned.lastIndexOf("}");
+  if (!cleaned || start === -1) throw new Error("AI returned empty structured output. Please try again.");
+  if (end <= start) throw new Error("AI response was cut off before it finished. Try a shorter script.");
+
+  const candidate = cleaned.slice(start, end + 1);
+  try {
+    return JSON.parse(candidate) as T;
+  } catch (error) {
+    console.error("Failed to parse AI structured output", {
+      rawResponse: raw,
+      sanitizedResponse: candidate,
+      error,
+    });
+    throw new Error("AI returned invalid or incomplete structured output");
+  }
+}
+
 async function callGemini(
   apiKey: string,
   sentences: Sentence[],
@@ -202,7 +230,13 @@ async function callGemini(
   };
 
   const scriptListing = sentences.map((s) => `[${s.index}] (${s.words}w) ${s.text}`).join("\n");
-  const system = `You are a short-form video retention engineer. Rewrite weak lines into strong, on-camera-ready replacements. Editor techniques must be specific (cut + camera move + SFX). No jargon, no filler. Return ONLY via the tool.`;
+  const system = `You are a short-form video retention engineer. Rewrite weak lines into strong, on-camera-ready replacements. Editor techniques must be specific (cut + camera move + SFX). No jargon, no filler.
+
+ABSOLUTE FORMAT LOCK:
+- Return ONLY one complete valid JSON object via the provided tool schema.
+- Omit conversational filler, intro text, explanations, headings, and markdown.
+- Do NOT wrap output in markdown fences such as \`\`\`json or \`\`\`.
+- The function arguments must be parseable by JSON.parse with no cleanup.`;
   const user = `Script:
 ${scriptListing}
 
@@ -237,9 +271,17 @@ Tasks:
     throw new Error(`AI gateway ${res.status}: ${t}`);
   }
   const payload = await res.json();
-  const args = payload?.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments;
-  if (!args) throw new Error("AI returned no structured output");
-  return JSON.parse(args) as GeminiOutput;
+  const choice = payload?.choices?.[0];
+  const args = choice?.message?.tool_calls?.[0]?.function?.arguments || choice?.message?.content;
+  if (!args) {
+    console.error("AI returned no structured output", { payload });
+    throw new Error("AI returned empty structured output. Please try again.");
+  }
+  if (choice?.finish_reason === "length") {
+    console.error("AI structured output was truncated", { rawResponse: args });
+    throw new Error("AI response was cut off before it finished. Try a shorter script.");
+  }
+  return parseAiJson<GeminiOutput>(args);
 }
 
 // ---------- handler ----------
