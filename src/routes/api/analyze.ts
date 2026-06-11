@@ -3,6 +3,43 @@ import { createFileRoute } from "@tanstack/react-router";
 
 type Strictness = "Trim Only" | "Balanced" | "Hyper-Short";
 
+async function readStreamedToolArguments(res: Response): Promise<string> {
+  if (!res.body) return "";
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let args = "";
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    let nl;
+    while ((nl = buffer.indexOf("\n")) !== -1) {
+      const rawLine = buffer.slice(0, nl).trim();
+      buffer = buffer.slice(nl + 1);
+      if (!rawLine.startsWith("data:")) continue;
+      const data = rawLine.slice(5).trim();
+      if (!data || data === "[DONE]") continue;
+      try {
+        const chunk = JSON.parse(data);
+        const delta = chunk?.choices?.[0]?.delta;
+        const toolCalls = delta?.tool_calls;
+        if (Array.isArray(toolCalls)) {
+          for (const tc of toolCalls) {
+            const piece = tc?.function?.arguments;
+            if (typeof piece === "string") args += piece;
+          }
+        }
+        const fallback = chunk?.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments;
+        if (typeof fallback === "string" && !args) args = fallback;
+      } catch {
+        // skip malformed chunk
+      }
+    }
+  }
+  return args;
+}
+
 function strictnessDirective(s: Strictness): string {
   if (s === "Trim Only")
     return "- Target: EXACTLY ~12% word reduction, 135 WPM (cinematic), conservative polish only: remove filler, preserve sentence order and most wording.";
