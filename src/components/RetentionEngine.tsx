@@ -246,6 +246,31 @@ type Analysis = {
   matrix: MatrixRow[];
 };
 
+function parseAnalysisResponse(rawResponse: string): Analysis {
+  const cleaned = rawResponse
+    .replace(/^\uFEFF/, "")
+    .replace(/```(?:json)?/gi, "")
+    .replace(/```/g, "")
+    .trim();
+  const start = cleaned.indexOf("{");
+  const end = cleaned.lastIndexOf("}");
+
+  if (!cleaned || start === -1) throw new Error("No JSON payload found in analysis response. Please try again.");
+  if (end <= start) throw new Error("Analysis response was cut off before it finished. Try a shorter script.");
+
+  const candidate = cleaned.slice(start, end + 1);
+  try {
+    return JSON.parse(candidate) as Analysis;
+  } catch (error) {
+    console.error("Failed to parse analysis response", {
+      rawResponse,
+      sanitizedResponse: candidate,
+      error,
+    });
+    throw new Error("Could not parse analysis response. Please try again.");
+  }
+}
+
 function ResultView({ analysis }: { analysis: Analysis }) {
   const [rows, setRows] = useState<MatrixRow[]>(analysis.matrix);
   const [copied, setCopied] = useState(false);
@@ -531,7 +556,7 @@ export function RetentionEngine() {
         if (res.status === 402) throw new Error("AI credits exhausted. Add credits in Settings → Workspace → Usage.");
         throw new Error(body.error || `Request failed (${res.status})`);
       }
-      const data = (await res.json()) as Analysis;
+      const data = parseAnalysisResponse(await res.text());
       setAnalysis(data);
       setStatus("done");
     } catch (e) {
