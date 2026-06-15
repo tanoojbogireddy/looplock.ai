@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { Link } from "@tanstack/react-router";
 import {
   Loader2,
   Sparkles,
@@ -131,100 +132,6 @@ function trackUsage() {
   const key = `re_usage_${month}`;
   const cur = Number(localStorage.getItem(key) ?? "0") || 0;
   localStorage.setItem(key, String(cur + 1));
-}
-
-function RetentionCurve({
-  data,
-  color,
-  markerSecond,
-  markerLabel,
-}: {
-  data: number[];
-  color: string;
-  markerSecond?: number;
-  markerLabel?: string;
-}) {
-  const W = 320;
-  const H = 140;
-  const pad = { l: 28, r: 8, t: 10, b: 22 };
-  const y = (pct: number) => pad.t + (1 - Math.max(0, Math.min(100, pct)) / 100) * (H - pad.t - pad.b);
-  const x = (t: number) => pad.l + (t / 30) * (W - pad.l - pad.r);
-
-  // map 11 samples to 0..30s
-  const safe = (data && data.length >= 2 ? data : [100, 0]).slice(0, 11);
-  const step = 30 / (safe.length - 1);
-  const path = safe
-    .map((p, i) => `${i === 0 ? "M" : "L"} ${x(i * step)} ${y(p)}`)
-    .join(" ");
-  const area = `${path} L ${x(30)} ${y(0)} L ${x(0)} ${y(0)} Z`;
-
-  const yTicks = [0, 25, 50, 75, 100];
-  const xTicks = [0, 5, 10, 15, 20, 25, 30];
-
-  // interpolate marker y
-  let markerY: number | null = null;
-  let markerPct: number | null = null;
-  if (typeof markerSecond === "number" && markerSecond >= 0 && markerSecond <= 30) {
-    const idxF = markerSecond / step;
-    const i0 = Math.floor(idxF);
-    const i1 = Math.min(safe.length - 1, i0 + 1);
-    const frac = idxF - i0;
-    markerPct = safe[i0] + (safe[i1] - safe[i0]) * frac;
-    markerY = y(markerPct);
-  }
-
-  return (
-    <svg
-      viewBox={`0 0 ${W} ${H}`}
-      preserveAspectRatio="xMidYMid meet"
-      className="block h-auto w-full max-w-full border-2 border-black bg-white"
-    >
-      {yTicks.map((t) => (
-        <line key={`y${t}`} x1={pad.l} x2={W - pad.r} y1={y(t)} y2={y(t)} stroke="#000" strokeOpacity={0.12} />
-      ))}
-      {yTicks.map((t) => (
-        <text key={`yt${t}`} x={4} y={y(t) + 3} fontSize={8} fontFamily="monospace" fill="#000">
-          {t}
-        </text>
-      ))}
-      {xTicks.map((t) => (
-        <text key={`xt${t}`} x={x(t) - 4} y={H - 6} fontSize={8} fontFamily="monospace" fill="#000">
-          {t}s
-        </text>
-      ))}
-      <line x1={pad.l} x2={pad.l} y1={pad.t} y2={H - pad.b} stroke="#000" strokeWidth={1.5} />
-      <line x1={pad.l} x2={W - pad.r} y1={H - pad.b} y2={H - pad.b} stroke="#000" strokeWidth={1.5} />
-      {/* 65% threshold line */}
-      <line
-        x1={pad.l}
-        x2={W - pad.r}
-        y1={y(65)}
-        y2={y(65)}
-        stroke="#FF1F1F"
-        strokeWidth={1.5}
-        strokeDasharray="4 3"
-      />
-      <path d={area} fill={color} fillOpacity={0.25} />
-      <path d={path} stroke="#000" strokeWidth={2.5} fill="none" />
-      {markerY !== null && markerPct !== null && typeof markerSecond === "number" && (
-        <>
-          <circle cx={x(markerSecond)} cy={markerY} r={5} fill={color} stroke="#000" strokeWidth={2} />
-          {markerLabel && (
-            <text
-              x={Math.min(W - 80, x(markerSecond) + 8)}
-              y={Math.max(14, markerY - 6)}
-              fontSize={9}
-              fontFamily="monospace"
-              fontWeight={700}
-              fill="#000"
-            >
-              {markerLabel}
-            </text>
-          )}
-        </>
-      )}
-    </svg>
-  );
 }
 
 type LeakPoint = {
@@ -785,8 +692,6 @@ function MatrixTab({
 
   const exportPdf = () => {
     if (typeof window === "undefined") return;
-    const w = window.open("", "_blank", "noopener,noreferrer,width=900,height=1000");
-    if (!w) return;
     const rowsHtml = enriched
       .map(
         (r) => `
@@ -799,7 +704,7 @@ function MatrixTab({
         </tr>`,
       )
       .join("");
-    w.document.write(`<!doctype html><html><head><title>Editor Briefing</title>
+    const html = `<!doctype html><html><head><title>Editor Briefing</title>
       <style>
         body{font-family:Helvetica,Arial,sans-serif;color:#000;padding:32px;}
         h1{font-size:22px;margin:0 0 16px;}
@@ -810,9 +715,11 @@ function MatrixTab({
       <h1>Editor Briefing</h1>
       <table><thead><tr><th>Line</th><th>Timestamp</th><th>Camera Framing</th><th>B-Roll &amp; SFX</th><th>Editing Technique</th></tr></thead>
       <tbody>${rowsHtml}</tbody></table>
-      <script>window.onload=()=>{window.print();}</script>
-      </body></html>`);
-    w.document.close();
+      <script>window.onload=()=>{window.print();window.URL.revokeObjectURL(window.location.href);}</script>
+      </body></html>`;
+    const blob = new Blob([html], { type: "text/html" });
+    const url = URL.createObjectURL(blob);
+    window.open(url, "_blank", "noopener,noreferrer,width=900,height=1000");
   };
 
   return (
@@ -972,7 +879,6 @@ export function Workspace() {
   const [analysis, setAnalysis] = useState<Analysis | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [strictness, setStrictness] = useState<Strictness>("Balanced");
-  const [isProUser, setIsProUser] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<string>("analysis");
   const FREE_LIMIT = 3;
   const [creditsRemaining, setCreditsRemaining] = useState<number>(FREE_LIMIT);
@@ -988,6 +894,7 @@ export function Workspace() {
   const visibleFullScript = refetching ? "" : generatedScript;
 
   const lastAnalyzedScriptRef = useRef<string>("");
+  const prevAnalysisRef = useRef<Analysis | null>(null);
   const requestSeqRef = useRef(0);
   const abortRef = useRef<AbortController | null>(null);
   const runAnalyze = async (opts: { consumeCredit: boolean; strictnessOverride?: Strictness }) => {
@@ -1002,6 +909,7 @@ export function Workspace() {
     const controller = new AbortController();
     abortRef.current = controller;
     if (hasExistingAnalysis) {
+      if (!prevAnalysisRef.current) prevAnalysisRef.current = analysis;
       setRefetching(true);
       setAnalysis((prev) => (prev ? clearGeneratedPanels(prev) : prev));
     } else {
@@ -1041,6 +949,7 @@ export function Workspace() {
         throw new Error("Incomplete analysis payload. Please try again.");
       }
       setAnalysis(data);
+      prevAnalysisRef.current = null;
       lastAnalyzedScriptRef.current = script;
       if (opts.consumeCredit) {
         trackUsage();
@@ -1053,6 +962,10 @@ export function Workspace() {
       if (requestId !== requestSeqRef.current) return;
       setError(e instanceof Error ? e.message : "Something went wrong");
       if (hasExistingAnalysis) {
+        if (prevAnalysisRef.current) {
+          setAnalysis(prevAnalysisRef.current);
+          prevAnalysisRef.current = null;
+        }
         setRefetching(false);
       } else {
         setStatus("idle");
@@ -1065,6 +978,7 @@ export function Workspace() {
     if (next === strictness) return;
     setStrictness(next);
     if (analysis && lastAnalyzedScriptRef.current === script) {
+      prevAnalysisRef.current = analysis;
       setRefetching(true);
       setAnalysis((prev) => (prev ? clearGeneratedPanels(prev) : prev));
     }
@@ -1180,13 +1094,13 @@ export function Workspace() {
                     <li>✅ Full rewritten scripts + editor briefings</li>
                     <li>✅ Single tier · cancel anytime</li>
                   </ul>
-                  <button
-                    type="button"
+                  <Link
+                    to="/profile"
                     className={`${BTN_PRIMARY} mt-4 w-full py-3 text-base`}
                     style={{ backgroundColor: "#00FF66" }}
                   >
                     <Sparkles className="h-4 w-4" /> Upgrade to Unlimited
-                  </button>
+                  </Link>
                 </div>
               )}
           </WindowPane>
@@ -1231,20 +1145,6 @@ export function Workspace() {
 
         {status === "done" && analysis && (
           <div className="mt-6 flex w-full flex-col gap-6">
-            {/* Tier toggle (demo) */}
-            <div className="flex flex-wrap items-center justify-end gap-2">
-              <span className="font-mono text-[10px] font-bold uppercase tracking-widest text-black/60">
-                Tier:
-              </span>
-              <button
-                type="button"
-                onClick={() => setIsProUser((v) => !v)}
-                className="inline-flex items-center gap-2 border-2 border-black bg-white px-3 py-1.5 font-mono text-[11px] font-bold uppercase tracking-widest text-black shadow-[3px_3px_0px_0px_#000]"
-              >
-                {isProUser ? "⚡ Pro" : "🔒 Free"} · Toggle
-              </button>
-            </div>
-
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsList className="grid h-auto w-full grid-cols-3 gap-2 border-2 border-black bg-white p-2 shadow-[4px_4px_0px_0px_#000000]">
                 <TabsTrigger

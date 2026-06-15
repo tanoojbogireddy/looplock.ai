@@ -149,7 +149,7 @@ function LandingPage() {
               <span className="font-mono text-sm text-muted-foreground">/ month</span>
             </div>
             <ul className="mt-6 space-y-2 text-sm text-black">
-              <li className="flex items-center gap-2"><Check className="h-4 w-4" /> 15 script audits per month</li>
+              <li className="flex items-center gap-2"><Check className="h-4 w-4" /> Unlimited script audits</li>
               <li className="flex items-center gap-2"><Check className="h-4 w-4" /> Full Interactive Script Doctor (Trim Only, Balanced, Hyper-Short)</li>
               <li className="flex items-center gap-2"><Check className="h-4 w-4" /> Timestamped Editing Matrix (camera, B-roll, pacing)</li>
               <li className="flex items-center gap-2"><Check className="h-4 w-4" /> Tuned for short-form drop-off patterns</li>

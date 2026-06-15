@@ -30,10 +30,24 @@ function LoginPage() {
 
   const onGoogle = async () => {
     setErr(null);
-    const res = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin + "/app",
-    });
-    if (res.error) setErr(res.error instanceof Error ? res.error.message : "Google sign-in failed");
+    const isLocal =
+      window.location.hostname === "localhost" ||
+      window.location.hostname === "127.0.0.1";
+
+    if (isLocal) {
+      // Lovable's /~oauth/initiate proxy doesn't exist on localhost, use Supabase directly.
+      // Requires Google OAuth provider enabled in the Supabase dashboard → Authentication → Providers.
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: { redirectTo: window.location.origin + "/app" },
+      });
+      if (error) setErr(error.message);
+    } else {
+      const res = await lovable.auth.signInWithOAuth("google", {
+        redirect_uri: window.location.origin + "/app",
+      });
+      if (res.error) setErr(res.error instanceof Error ? res.error.message : "Google sign-in failed");
+    }
   };
 
   return (

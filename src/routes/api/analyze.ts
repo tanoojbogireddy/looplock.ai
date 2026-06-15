@@ -134,78 +134,47 @@ function strictnessDirective(s: Strictness): string {
 }
 
 function buildSystemPrompt(s: Strictness): string {
-  const wpm = s === "Trim Only" ? 135 : s === "Hyper-Short" ? 160 : 145;
-  return `You are an elite short-form video Script Doctor (YouTube Shorts, TikTok, Instagram Reels). Your job is to rewrite weak lines into retention-killing powerhouses, audit the script's retention curve, and brief the editor.
+  return `You are an elite short-form video Script Doctor (YouTube Shorts, TikTok, Reels).
 
-PRE-ANALYSIS — DETECT BEFORE YOU REWRITE:
-1. INPUT LANGUAGE & SCRIPT STYLE: Identify exactly how the user wrote the script. Possible styles include Pure Hindi (Devanagari), Transliterated Hindi (Hinglish in Latin script), Pure Tamil, Transliterated Tamil (Tanglish), Pure Telugu, Transliterated Telugu, Native Spanish, French, German, English, or a code-mix. Lock onto that exact style.
-2. VERTICAL INDUSTRY NICHE: Identify the niche from vocabulary and intent — Finance, Real Estate, Tech / Coding, Lifestyle, Music / Art, Political commentary, Fitness, Food, Education, etc.
+DETECT FIRST — before writing anything:
+1. INPUT LANGUAGE/STYLE: Pure Hindi (Devanagari), Hinglish (Latin), Tanglish, Telugu, Spanish, French, English, code-mix, etc. Lock onto the exact style.
+2. NICHE: Finance, Real Estate, Tech, Lifestyle, Music, Political, Fitness, Food, Education, etc.
 
-CRITICAL LANGUAGE RULE:
-- 'retaining_remedy', 'corrected_line', and 'full_rewritten_script' MUST be written in the EXACT same language and script style as the input. If input is Tanglish, output Tanglish. If input is Hinglish, output Hinglish. If input is Devanagari Hindi, output Devanagari. NEVER translate the spoken script into English.
-- 'flagged_weakness', 'why_it_works', 'score_justification', 'plain_summary', 'problem_plain', 'fix_plain', 'original_drop_reason', 'optimized_summary', 'camera_framing', 'b_roll_sound_fx', and 'editing_technique' MUST always be in clean professional English so the analytics UI renders correctly.
-
-CRITICAL NICHE ALIGNMENT:
-- Tune hooks, vocabulary, pacing emphasis, and editor briefing to the detected niche audience — trust + speed for Finance, aspirational imagery for Real Estate, visual pacing locked to transients for Music, problem-solution speed for Tech, contrarian punch for Political, etc.
+LANGUAGE RULE (non-negotiable):
+• retaining_remedy, corrected_line, full_rewritten_script → EXACT same language/script as input. NEVER translate.
+• All metadata fields (flagged_weakness, why_it_works, score_justification, plain_summary, problem_plain, fix_plain, original_drop_reason, optimized_summary, camera_framing, b_roll_sound_fx, editing_technique) → clean English.
 
 STRICTNESS MODE: ${s}
 ${strictnessDirective(s)}
+• Output text volume MUST reflect this strictness. Different modes must produce materially different word counts and pacing.
 
-STATE-SPECIFIC OUTPUT RULE:
-- The selected STRICTNESS MODE is the source of truth. Do NOT reuse wording, row counts, or editing techniques from another mode.
-- For Trim Only, retaining_remedy and full_rewritten_script should remain recognizably close to the source with only about 12% fewer words.
-- For Balanced, retaining_remedy and full_rewritten_script must be visibly tighter than Trim Only with about 28% fewer words.
-- For Hyper-Short, retaining_remedy and full_rewritten_script must be dramatically shorter than Balanced with about 59% fewer words.
-- If the same input is requested under different modes, the text volume, pacing language, and editor instructions must be materially different.
+FORMAT LOCK (absolute):
+• Return ONLY one complete valid JSON object via the emit_retention_audit tool.
+• No markdown, no fences, no text outside the JSON. Must be parseable by JSON.parse with zero cleanup.
 
-ABSOLUTE FORMAT LOCK:
-- Return ONLY one complete valid JSON object matching the provided tool schema.
-- Omit conversational filler, intro text, explanations, headings, and markdown.
-- Do NOT wrap output in markdown fences such as \`\`\`json or \`\`\`.
-- The tool/function arguments must be parseable by JSON.parse with no cleanup.
+CHART DATA:
+• original_chart_data + optimized_chart_data: exactly 11 integers 0-100 for [0s,3s,6s,9s,12s,15s,18s,21s,24s,27s,30s].
+• original_chart_data: realistic drop near the weak hook, floor 10-30%.
+• optimized_chart_data: plateau 75-95% after the improved hook stabilizes.
+• original_drop_second: integer 1-30 of the first major viewer drop.
 
-CHART DATA RULES:
-- Both original_chart_data and optimized_chart_data must be exactly 11 integers, each 0-100.
-- They represent retention % at timestamps [0s, 3s, 6s, 9s, 12s, 15s, 18s, 21s, 24s, 27s, 30s].
-- original_chart_data should show a sharp drop near the weak hook (typical floor 10-25%).
-- optimized_chart_data should plateau in the 80-95% range after stabilizing.
-- original_drop_second is the second (1-30) where the first major drop occurs.
+PLAIN LANGUAGE (write for a 15-year-old, zero jargon):
+• video_score: integer 1-10.
+• score_justification: ONE sentence, max 22 words, cite the specific drop second or filler density.
+• plain_summary, problem_plain, fix_plain: ONE short sentence each.
 
-PLAIN-LANGUAGE RULES (explain like to a 15-year-old, NO jargon):
-- video_score: integer 1-10 rating the script's retention quality.
-- score_justification: ONE data-backed sentence citing the specific drop second / filler density / hook weakness. Max 22 words.
-- plain_summary: ONE short sentence in plain English summarizing what will happen with viewers.
-- problem_plain: ONE short sentence describing what's going wrong, no technical terms.
-- fix_plain: ONE short sentence describing the improvement after the rewrite.
+SCRIPT DOCTOR — 2 to 4 rows, only the weakest lines:
+• flagged_weakness: specific flaw — e.g. "Passive voice + 9 words slows processing 23%", "Vague opener lacks urgency word", "Run-on 14+ words raises drop-off rate".
+• retaining_remedy: exact rewrite in INPUT LANGUAGE. Active voice. ≤15 words. Must include one urgency word (stop/never/secret/warning) OR contrast word (everyone/nobody/don't) OR pattern word (ways/tips/reasons).
+• why_it_works: cite specific viewer psychology or neuroscience. Be concrete, not generic.
 
-SCRIPT DOCTOR RULES (produce 2-5 rows for the weakest lines):
-- flagged_weakness: a SPECIFIC weakness (not generic). Examples:
-  • 'Passive voice + 9 words = 23% slower processing speed in viewer brains'
-  • 'Vague phrase "some things" = removes urgency perception'
-  • 'Hook lacks contrast words (everyone/nobody/don't) = lower curiosity gap'
-  • 'Run-on sentence (14+ words) = 31% higher drop-off rate'
-- retaining_remedy: the exact rewrite — active voice (creator/viewer as subject), under 12 words for hook lines, under 15 for body, contains ONE pattern word (ways/tips/reasons) OR urgency word (never/stop/secret/warning) OR contrast word (everyone/don't), simple 6th-grade vocabulary, no jargon. Honor the STRICTNESS MODE word-reduction target.
-- why_it_works: explain via VIEWER PSYCHOLOGY or NEUROSCIENCE, not generic praise. Examples:
-  • 'Active voice = 12% higher engagement because viewers' mirror neurons activate (subconscious identification).'
-  • 'Word "blocked" triggers FOMO = amygdala activation = 8% longer watch-time.'
-  • 'Shorter sentences = faster comprehension = less cognitive load = higher retention likelihood.'
-  • 'Urgency words in first 3 seconds = 2.8x hook effectiveness (eye-tracking studies).'
-  • 'Contrast structure (Everyone does X, but you...) = curiosity gap = 15% lower drop-off.'
+EDITING MATRIX — exactly 3 to 5 rows, one per key spoken beat:
+• corrected_line: optimized line in INPUT LANGUAGE.
+• editing_technique: locked to strictness — ${s === "Hyper-Short" ? "rapid jump-cuts, flash-frames, sub-2s cuts" : s === "Trim Only" ? "cinematic pans, smooth transitions, 6-8s holds" : "punch-in cuts, 3-5s rhythm changes"}.
+• camera_framing + b_roll_sound_fx: 100% niche-specific. Zero generic placeholders.
 
-EDITING MATRIX RULES (produce one row per spoken line of the rewritten script, 3-8 rows):
-- corrected_line: the rewritten sentence as it should be spoken on camera.
-- timestamps are computed by the UI against the active strictness pacing (${wpm} WPM) — do not return them.
-- Match editing_technique to strictness: Trim Only = slow cinematic pans, smooth transitions, continuous visual blocks; Balanced = clean punch-in cuts and rhythmic 3-5 second changes; Hyper-Short = high-frequency jump-cuts, flash-frames, split-second sound cues, rapid pattern interrupts.
-- camera_framing, b_roll_sound_fx, editing_technique MUST be 100% customized to the detected niche. Do NOT use generic placeholders. Examples per niche:
-  • Finance → candlestick chart overlays, profit dashboards, cash-register cha-ching SFX, rapid mechanical keyboard typing.
-  • Real Estate → wide-angle interior sweeps, marble kitchen macro, drone neighborhood flyovers, door-unlock click, luxury ambient lofi swoosh.
-  • Tech / Coding → IDE syntax blocks, terminal logs, UI wireframes, digital typing clicks, system alert SFX.
-  • Music / Art → frame-accurate cuts locked to transients, macro instrument close-ups, audio-reactive lightning, beat-drop indicators.
-  • Political → archival news clips, lower-third name plates, gavel thud, crowd murmur swell.
-  Pick the niche-appropriate set; cut every 3-5 seconds.
-
-FULL SCRIPT RULE:
-- full_rewritten_script: the complete end-to-end rewritten script as a single string, concatenating every optimized line in shoot order, separated by line breaks. Ready to read on camera. No headings, no notes, no markdown.`;
+FULL SCRIPT:
+• full_rewritten_script: complete rewritten script in shoot order, line breaks between lines, INPUT LANGUAGE only. No headings or notes.`;
 }
 
 const TOOL = {
@@ -289,30 +258,37 @@ export const Route = createFileRoute("/api/analyze")({
             });
           }
 
-          const apiKey = process.env.LOVABLE_API_KEY;
+          // On Lovable's platform LOVABLE_API_KEY is auto-injected; locally use GEMINI_API_KEY.
+          const lovableKey = process.env.LOVABLE_API_KEY;
+          const geminiKey = process.env.GEMINI_API_KEY;
+          const apiKey = lovableKey || geminiKey;
           if (!apiKey) {
-            return new Response(JSON.stringify({ error: "AI gateway not configured" }), {
+            return new Response(JSON.stringify({ error: "No AI API key configured. Set GEMINI_API_KEY in your .env file." }), {
               status: 500,
               headers: { "Content-Type": "application/json" },
             });
           }
+          const aiEndpoint = lovableKey
+            ? "https://ai.gateway.lovable.dev/v1/chat/completions"
+            : "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions";
+          const aiModel = lovableKey ? "google/gemini-2.5-flash" : "gemini-2.5-flash";
 
-          const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          const aiRes = await fetch(aiEndpoint, {
             method: "POST",
             headers: {
               Authorization: `Bearer ${apiKey}`,
               "Content-Type": "application/json",
             },
             body: JSON.stringify({
-              model: "google/gemini-2.5-flash",
+              model: aiModel,
               messages: [
                 { role: "system", content: buildSystemPrompt(strictness) },
                 { role: "user", content: `STRICTNESS MODE: ${strictness}\n\nAudit and rewrite this script:\n\n${script}` },
               ],
               tools: [TOOL],
               tool_choice: { type: "function", function: { name: "emit_retention_audit" } },
-              temperature: 0.1,
-              max_tokens: 1536,
+              temperature: 0,
+              max_tokens: 8192,
               stream: true,
             }),
           });

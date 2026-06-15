@@ -34,7 +34,7 @@ function ProfilePage() {
   const [email, setEmail] = useState<string | null>(null);
   const [used, setUsed] = useState(0);
   const [open, setOpen] = useState(false);
-  const [isSubscribed, setIsSubscribed] = useState(false);
+  const isSubscribed = false;
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setEmail(data.user?.email ?? null));
@@ -48,14 +48,7 @@ function ProfilePage() {
           <h1 className="font-serif text-4xl font-bold text-black md:text-5xl">Account</h1>
           <p className="mt-2 text-sm text-muted-foreground">Manage your plan and usage.</p>
         </div>
-        {/* Dev toggle */}
-        <button
-          onClick={() => setIsSubscribed((v) => !v)}
-          className="border-2 border-dashed border-black bg-white px-3 py-2 font-mono text-[10px] font-bold uppercase tracking-widest text-black shadow-[3px_3px_0px_0px_#000000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0px_0px_#000000]"
-          title="Dev only — toggle subscription state"
-        >
-          DEV: View as {isSubscribed ? "Free User" : "Paid User"}
-        </button>
+
       </div>
 
       <div className="mt-8 grid gap-6 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
@@ -201,19 +194,13 @@ function ProfilePage() {
                   </div>
                 </div>
 
-                <div className="mt-6 flex flex-col gap-2 sm:flex-row">
-                  <button
-                    onClick={() => {
-                      console.log("Update Payment Method clicked");
-                      window.open("about:blank", "_blank");
-                    }}
-                    className={`${BTN} w-full`}
-                  >
-                    Update Payment Method
-                  </button>
+                <div className="mt-5 border-2 border-black bg-[#FFD93D] px-4 py-3 font-mono text-[11px] font-bold uppercase tracking-wider text-black shadow-[3px_3px_0px_0px_#000000]">
+                  Payment portal coming soon — contact support to make changes.
+                </div>
+                <div className="mt-4 flex justify-end">
                   <button
                     onClick={() => setOpen(false)}
-                    className="inline-flex w-full items-center justify-center gap-2 border-2 border-black bg-white px-5 py-3 text-sm font-extrabold uppercase tracking-wider text-black shadow-[4px_4px_0px_0px_#000000] transition-all hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_#000000]"
+                    className="inline-flex items-center justify-center gap-2 border-2 border-black bg-white px-5 py-3 text-sm font-extrabold uppercase tracking-wider text-black shadow-[4px_4px_0px_0px_#000000] transition-all hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_#000000]"
                   >
                     Close
                   </button>
@@ -243,21 +230,15 @@ function ProfilePage() {
                   </ul>
                 </div>
 
-                <div className="mt-6 flex flex-col gap-2 sm:flex-row">
-                  <button
-                    onClick={() => {
-                      console.log("Upgrade to Pro clicked");
-                      window.open("about:blank", "_blank");
-                    }}
-                    className={`${BTN_UPGRADE} w-full`}
-                  >
-                    Upgrade Now
-                  </button>
+                <div className="mt-5 border-2 border-black bg-[#FFD93D] px-4 py-3 font-mono text-[11px] font-bold uppercase tracking-wider text-black shadow-[3px_3px_0px_0px_#000000]">
+                  Payment portal coming soon — we'll notify you when it's live.
+                </div>
+                <div className="mt-4 flex justify-end">
                   <button
                     onClick={() => setOpen(false)}
-                    className="inline-flex w-full items-center justify-center gap-2 border-2 border-black bg-white px-5 py-3 text-sm font-extrabold uppercase tracking-wider text-black shadow-[4px_4px_0px_0px_#000000] transition-all hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_#000000]"
+                    className="inline-flex items-center justify-center gap-2 border-2 border-black bg-white px-5 py-3 text-sm font-extrabold uppercase tracking-wider text-black shadow-[4px_4px_0px_0px_#000000] transition-all hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_#000000]"
                   >
-                    Maybe Later
+                    Close
                   </button>
                 </div>
               </>
