@@ -1,12 +1,8 @@
 import { defineConfig } from 'vite'
-import { tanstackStart } from '@tanstack/start/vite'
+import { tanstackStart } from '@tanstack/react-start/plugin/vite'
 
 export default defineConfig({
   plugins: [
-    tanstackStart({
-      server: {
-        preset: 'vercel'
-      }
-    })
+    tanstackStart()
   ]
 })
