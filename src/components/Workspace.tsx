@@ -980,7 +980,6 @@ export function Workspace() {
     if (analysis && lastAnalyzedScriptRef.current === script) {
       prevAnalysisRef.current = analysis;
       setRefetching(true);
-      setAnalysis((prev) => (prev ? clearGeneratedPanels(prev) : prev));
     }
   };
 
