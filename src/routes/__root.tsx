@@ -102,6 +102,8 @@ function RootShell({ children }: { children: React.ReactNode }) {
     <html lang="en">
       <head>
         <HeadContent />
+        {/* Forces Vercel to load your Tailwind bundle right at the root template injection point */}
+        <link rel="stylesheet" href={appCss} />
       </head>
       <body>
         {children}
